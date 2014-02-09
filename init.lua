@@ -89,10 +89,34 @@ local function return_line(pos, dir, range) --range ~= length
 	return tab
 end
 
+local function return_fine_line(pos, dir, range, scale)
+	local ps1 = return_line(vector.round(vector.multiply(pos, scale)), dir, range*scale)
+	local ps2 = {vector.round(vector.divide(ps1[1], scale))}
+	local ps2_num = 2
+	for _,p1 in ipairs(ps1) do
+		local p2 = vector.round(vector.divide(p1, scale))
+		if p2 ~= ps2[ps2_num-1] then
+			ps2[ps2_num] = p2
+			ps2_num = ps2_num+1
+		end
+	end
+	return ps2
+end
+
+function vector.fine_line(pos, dir, range, scale)
+	--assert_vector(pos)
+	if not range then --dir = pos2
+		dir = vector.direction(pos, dir)
+		range = vector.distance(pos, dir)
+	end
+	return return_fine_line(pos, dir, range, scale)
+end
+
 function vector.line(pos, dir, range)
 	--assert_vector(pos)
 	if not range then --dir = pos2
-		return return_line(pos, vector.direction(pos, dir), vector.distance(pos, dir))
+		dir = vector.direction(pos, dir)
+		range = vector.distance(pos, dir)
 	end
 	return return_line(pos, dir, range)
 end
