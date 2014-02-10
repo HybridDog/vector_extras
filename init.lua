@@ -89,13 +89,22 @@ local function return_line(pos, dir, range) --range ~= length
 	return tab
 end
 
+local function table_contains2(t, v)
+	for i = #t, 1, -1 do
+		if t[i] == v then
+			return true
+		end
+	end
+	return false
+end
+
 local function return_fine_line(pos, dir, range, scale)
 	local ps1 = return_line(vector.round(vector.multiply(pos, scale)), dir, range*scale)
-	local ps2 = {vector.round(vector.divide(ps1[1], scale))}
-	local ps2_num = 2
+	local ps2 = {}
+	local ps2_num = 1
 	for _,p1 in ipairs(ps1) do
 		local p2 = vector.round(vector.divide(p1, scale))
-		if p2 ~= ps2[ps2_num-1] then
+		if not table_contains2(ps2, p2) then
 			ps2[ps2_num] = p2
 			ps2_num = ps2_num+1
 		end
