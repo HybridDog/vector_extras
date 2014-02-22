@@ -136,3 +136,18 @@ function vector.straightdelay(s, v, a)
 	end
 	return (math.sqrt(v*v+2*a*s)-v)/a
 end
+
+-- needs to get reworked
+function vector.sun_dir(t)
+	if t < 0.25
+	or t > 0.75 then
+		return
+	end
+	local p2
+	if t > 0.5 then
+		p2 = {x=-4, y=1/(2*t-1), z=0}
+	else
+		p2 = {x=4, y=1/(1-2*t), z=0}
+	end	
+	return vector.direction({x=0,y=0,z=0}, p2)
+end
