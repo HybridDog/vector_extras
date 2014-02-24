@@ -151,3 +151,39 @@ function vector.sun_dir(t)
 	end	
 	return vector.direction({x=0,y=0,z=0}, p2)
 end
+
+function vector.inside(pos, minp, maxp)
+	for _,i in ipairs({"x", "y", "z"}) do
+		if pos[i] < minp[i]
+		or pos[i] > maxp[i] then
+			return false
+		end
+	end
+	return true
+end
+
+function vector.minmax(p1, p2)
+	local p1 = vector.new(p1) --Are these 2 redefinitions necessary?
+	local p2 = vector.new(p2)
+	for _,i in ipairs({"x", "y", "z"}) do
+		if p1[i] > p2[i] then
+			p1[i], p2[i] = p2[i], p1[i]
+		end
+	end
+	return p1, p2
+end
+
+function vector.move(p1, p2, s)
+	return vector.round(
+		vector.add(
+			vector.multiply(
+				vector.direction(
+					p1,
+					p2
+				),
+				s
+			),
+			p1
+		)
+	)
+end
