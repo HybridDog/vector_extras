@@ -187,3 +187,100 @@ function vector.move(p1, p2, s)
 		)
 	)
 end
+
+local explosion_tables = {}
+function vector.explosion_table(r)
+	local table = explosion_tables[r]
+	if table then
+		return table
+	end
+
+	local t1 = os.clock()
+	local tab, n = {}, 1
+
+	local tmp = r*r + r
+	for x=-r,r do
+		for y=-r,r do
+			for z=-r,r do
+				local rc = x*x+y*y+z*z 
+				if rc <= tmp then
+					local np={x=x, y=y, z=z}
+					if math.floor(math.sqrt(rc) +0.5) > r-1 then
+						tab[n] = {np, true}
+					else
+						tab[n] = {np}
+					end
+					n = n+1
+				end
+			end
+		end
+	end
+	explosion_tables[r] = tab
+	print(string.format("[vector_extras] table created after ca. %.2fs", os.clock() - t1))
+	return tab
+end
+
+local circle_tables = {}
+function vector.circle(r)
+	local table = circle_tables[r]
+	if table then
+		return table
+	end
+
+	local t1 = os.clock()
+	local tab, n = {}, 1
+
+	for i = -r, r do
+		for j = -r, r do
+			if math.floor(math.sqrt(i*i+j*j)+0.5) == r then
+				tab[n] = {x=i, y=0, z=j}
+				n = n+1
+			end
+		end
+	end
+	circle_tables[r] = tab
+	print(string.format("[vector_extras] table created after ca. %.2fs", os.clock() - t1))
+	return tab
+end
+
+local ring_tables = {}
+function vector.ring(r)
+	local table = ring_tables[r]
+	if table then
+		return table
+	end
+
+	local t1 = os.clock()
+	local tab, n = {}, 1
+
+	local tmp = r*r
+	local p = {x=math.floor(r+0.5), z=0}
+	while p.x > 0 do
+		tab[n] = p
+		n = n+1
+		local p1, p2 = {x=p.x-1, z=p.z}, {x=p.x, z=p.z+1}
+		local dif1 = math.abs(tmp-p1.x*p1.x-p1.z*p1.z)
+		local dif2 = math.abs(tmp-p2.x*p2.x-p2.z*p2.z)
+		if dif1 <= dif2 then
+			p = p1
+		else
+			p = p2
+		end
+	end
+
+	local tab2, n = {}, 1
+	for _,i in ipairs(tab) do
+		for _,j in ipairs({
+			{i.x, i.z},
+			{-i.z, i.x},
+			{-i.x, -i.z},
+			{i.z, -i.x},
+		}) do
+			tab2[n] = {x=j[1], y=0, z=j[2]}
+			n = n+1
+		end
+	end
+	ring_tables[r] = tab2
+	print(string.format("[vector_extras] table created after ca. %.2fs", os.clock() - t1))
+	return tab2
+end
