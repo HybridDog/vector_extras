@@ -284,3 +284,9 @@ function vector.ring(r)
 	print(string.format("[vector_extras] table created after ca. %.2fs", os.clock() - t1))
 	return tab2
 end
+
+function vector.chunkcorner(pos)
+	return {x=pos.x-pos.x%16, y=pos.y-pos.y%16, z=pos.z-pos.z%16}
+end
+
+vector.zero = {x=0, y=0, z=0}
