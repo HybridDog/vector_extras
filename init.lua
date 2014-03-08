@@ -1,3 +1,9 @@
+local load_time_start = os.clock()
+
+function vector.pos_to_string(pos)
+	return "("..pos.x.."|"..pos.y.."|"..pos.z..")"
+end
+
 local r_corr = 0.25 --remove a bit more nodes (if shooting diagonal) to let it look like a hole (sth like antialiasing)
 
 -- this doesn't need to be calculated every time
@@ -137,19 +143,16 @@ function vector.straightdelay(s, v, a)
 	return (math.sqrt(v*v+2*a*s)-v)/a
 end
 
--- needs to get reworked
-function vector.sun_dir(t)
+vector.zero = {x=0, y=0, z=0}
+
+function vector.sun_dir(time)
+	local t = (time-0.5)*5/6+0.5 --the sun rises at 5 o'clock, not at 6
 	if t < 0.25
 	or t > 0.75 then
 		return
 	end
-	local p2
-	if t > 0.5 then
-		p2 = {x=-4, y=1/(2*t-1), z=0}
-	else
-		p2 = {x=4, y=1/(1-2*t), z=0}
-	end	
-	return vector.direction({x=0,y=0,z=0}, p2)
+	local tmp = math.pi*(2*t-0.5)
+	return {x=math.cos(tmp), y=math.sin(tmp), z=0}
 end
 
 function vector.inside(pos, minp, maxp)
@@ -289,4 +292,6 @@ function vector.chunkcorner(pos)
 	return {x=pos.x-pos.x%16, y=pos.y-pos.y%16, z=pos.z-pos.z%16}
 end
 
-vector.zero = {x=0, y=0, z=0}
+dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
+
+print(string.format("[vector_extras] loaded after ca. %.2fs", os.clock() - load_time_start))
