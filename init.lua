@@ -151,8 +151,8 @@ function vector.sun_dir(time)
 	or t > 0.75 then
 		return
 	end
-	local tmp = math.pi*(2*t-0.5)
-	return {x=math.cos(tmp), y=math.sin(tmp), z=0}
+	local tmp = math.cos(math.pi*(2*t-0.5))
+	return {x=tmp, y=math.sqrt(1-tmp*tmp), z=0}
 end
 
 function vector.inside(pos, minp, maxp)
