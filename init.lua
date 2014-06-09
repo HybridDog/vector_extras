@@ -130,8 +130,7 @@ end
 function vector.line(pos, dir, range)
 	--assert_vector(pos)
 	if not range then --dir = pos2
-		dir = vector.direction(pos, dir)
-		range = vector.distance(pos, dir)
+		dir, range = vector.direction(pos, dir), vector.distance(pos, dir)
 	end
 	return return_line(pos, dir, range)
 end
