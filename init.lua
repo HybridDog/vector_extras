@@ -135,6 +135,39 @@ function vector.line(pos, dir, range)
 	return return_line(pos, dir, range)
 end
 
+local twolines = {}
+function vector.twoline(x, y)
+	local pstr = x.." "..y
+	local line = twolines[pstr]
+	if line then
+		return line
+	end
+	line,n = {},1
+	local dirx = 1
+	if x < 0 then
+		dirx = -dirx
+	end
+	local ymin, ymax = 0, y
+	if y < 0 then
+		ymin, ymax = ymax, ymin
+	end
+	local m = y/x
+	local dir = 1
+	if m < 0 then
+		dir = -dir
+	end
+	for i = 0,x,dirx do
+		local p1 = math.max(math.min(math.floor((i-0.5)*m+0.5), ymax), ymin)
+		local p2 = math.max(math.min(math.floor((i+0.5)*m+0.5), ymax), ymin)
+		for j = p1,p2,dir do
+			line[n] = {i, j}
+			n = n+1
+		end
+	end
+	twolines[pstr] = line
+	return line
+end
+
 function vector.straightdelay(s, v, a)
 	if not a then
 		return s/v
