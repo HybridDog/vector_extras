@@ -151,7 +151,7 @@ function vector.twoline(x, y)
 	if y < 0 then
 		ymin, ymax = ymax, ymin
 	end
-	local m = y/x
+	local m = y/x --y/0 works too
 	local dir = 1
 	if m < 0 then
 		dir = -dir
@@ -178,6 +178,9 @@ end
 vector.zero = {x=0, y=0, z=0}
 
 function vector.sun_dir(time)
+	if not time then
+		time = minetest.get_timeofday()
+	end
 	local t = (time-0.5)*5/6+0.5 --the sun rises at 5 o'clock, not at 6
 	if t < 0.25
 	or t > 0.75 then
