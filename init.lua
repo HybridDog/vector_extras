@@ -127,12 +127,25 @@ function vector.fine_line(pos, dir, range, scale)
 	return return_fine_line(pos, dir, range, scale)
 end
 
-function vector.line(pos, dir, range)
+function vector.line(pos, dir, range, alt)
 	--assert_vector(pos)
-	if not range then --dir = pos2
-		dir, range = vector.direction(pos, dir), vector.distance(pos, dir)
+	if alt then
+		if not range then --dir = pos2
+			dir, range = vector.direction(pos, dir), vector.distance(pos, dir)
+		end
+		return return_line(pos, dir, range)
 	end
-	return return_line(pos, dir, range)
+	if range then --dir = pos2
+		dir = vector.round(vector.multiply(dir, range))
+	else
+		dir = vector.subtract(dir, pos)
+	end
+	local line,n = {},1
+	for _,i in ipairs(vector.threeline(dir.x, dir.y, dir.z)) do
+		line[n] = {x=pos.x+i[1], y=pos.y+i[2], z=pos.z+i[3]}
+		n = n+1
+	end
+	return line
 end
 
 local twolines = {}
@@ -142,7 +155,8 @@ function vector.twoline(x, y)
 	if line then
 		return line
 	end
-	line,n = {},1
+	line = {}
+	local n = 1
 	local dirx = 1
 	if x < 0 then
 		dirx = -dirx
@@ -165,6 +179,42 @@ function vector.twoline(x, y)
 		end
 	end
 	twolines[pstr] = line
+	return line
+end
+
+local threelines = {}
+function vector.threeline(x, y, z)
+	local pstr = x.." "..y.." "..z
+	local line = threelines[pstr]
+	if line then
+		return line
+	end
+	if x ~= math.floor(x) then
+		print("[vector_extras] INFO: The position used for vector.threeline isn't round.")
+	end
+	local two_line = vector.twoline(x, y)
+	line = {}
+	local n = 1
+	local zmin, zmax = 0, z
+	if z < 0 then
+		zmin, zmax = zmax, zmin
+	end
+	local m = z/math.hypot(x, y)
+	local dir = 1
+	if m < 0 then
+		dir = -dir
+	end
+	for _,i in ipairs(two_line) do
+		local px, py = unpack(i)
+		local ph = math.hypot(px, py)
+		local z1 = math.max(math.min(math.floor((ph-0.5)*m+0.5), zmax), zmin)
+		local z2 = math.max(math.min(math.floor((ph+0.5)*m+0.5), zmax), zmin)
+		for pz = z1,z2,dir do
+			line[n] = {px, py, pz}
+			n = n+1
+		end
+	end
+	threelines[pstr] = line
 	return line
 end
 
