@@ -241,7 +241,7 @@ function vector.sun_dir(time)
 end
 
 function vector.inside(pos, minp, maxp)
-	for _,i in ipairs({"x", "y", "z"}) do
+	for _,i in pairs({"x", "y", "z"}) do
 		if pos[i] < minp[i]
 		or pos[i] > maxp[i] then
 			return false
