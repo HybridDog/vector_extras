@@ -218,6 +218,154 @@ function vector.threeline(x, y, z)
 	return line
 end
 
+function vector.sort(ps, preferred_coords)
+	preferred_coords = preferred_coords or {"z", "y", "x"}
+	local a,b,c = unpack(preferred_coords)
+	local function ps_sorting(p1, p2)
+		if p1[a] == p2[a] then
+			if p1[b] == p2[a] then
+				if p1[c] < p2[c] then
+					return true
+				end
+			elseif p1[b] < p2[b] then
+				return true
+			end
+		elseif p1[a] < p2[a] then
+			return true
+		end
+	end
+	table.sort(ps, ps_sorting)
+	return ps
+end
+
+function vector.between(v, v1, v2, range)
+	for i in pairs(v) do
+		if not (v1[i] < v[i]+range and v[i] < v2[i]+range)
+		and not (v1[i]+range > v[i] and v[i]+range > v2[i]) then
+			return false
+		end
+	end
+	return true
+end
+
+function vector.scalarproduct(v1, v2)
+	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
+end
+
+function vector.crossproduct(v1, v2)
+	return {
+		x = v1.y*v2.z - v1.z*v2.y,
+		y = v1.z*v2.x - v1.x*v2.z,
+		z = v1.x*v2.y - v1.y*v2.x
+	}
+end
+
+function vector.mirror(pos, v, vb)
+	if vb then
+		v = vector.normalize(vector.crossproduct(v, vb))
+	end
+	local dx,dy,dz = v.x,v.y,v.z
+	local x,y,z = pos.x,pos.y,pos.z
+	local dif = (dx*x+dy*y+dz*z)/(dx*dx+dy*dy+dz*dz)
+	if dif == 0 then
+		return pos
+	end
+	dif = -dif*2
+	return vector.add(pos, vector.multiply(v, dif))
+end
+
+-- doesnt work
+--local areas = {}
+function vector.area(ps)
+	-- sort positions and imagine the first one as vector.zero
+	ps = vector.sort(ps)
+	local pos = ps[1]
+	local B = vector.subtract(ps[2], pos)
+	local C = vector.subtract(ps[3], pos)
+
+	-- get the positions for the fors
+	local cube_p1 = {x=0, y=0, z=0}
+	local cube_p2 = {x=0, y=0, z=0}
+	for i in pairs(cube_p1) do
+		cube_p1[i] = math.min(B[i], C[i], 0)
+		cube_p2[i] = math.max(B[i], C[i], 0)
+	end
+
+	local vn = vector.normalize(vector.crossproduct(B, C))
+
+	--[[bB.x*C.x+bB.y*C.y+C.z = 0
+	bB.x*vn.x+bB.y*vn.y+vn.z = 0
+
+	bB.x = -(bB.y*C.y+C.z)/*C.x
+	bB.x = -(bB.y*vn.y+vn.z)/vn.x
+
+	(bB.y*C.y+C.z)/*C.x = (bB.y*vn.y+vn.z)/vn.x
+	(bB.y*C.y+C.z)*vn.x = C.x*(bB.y*vn.y+vn.z)
+	bB.y*C.y*vn.x+C.z*vn.x = C.x*bB.y*vn.y+C.x*vn.z
+	bB.y*C.y*vn.x-C.x*bB.y*vn.y = C.x*vn.z-C.z*vn.x
+	bB.y*(C.y*vn.x-C.x*vn.y) = C.x*vn.z-C.z*vn.x
+	bB.y = (C.x*vn.z-C.z*vn.x)/(C.y*vn.x-C.x*vn.y)
+
+	bB.y = -(bB.x*C.x+C.z)/C.y
+	bB.y = -(bB.x*vn.x+vn.z)/vn.y]]
+
+	--[[
+	local v3 = vector.subtract(C, B)
+
+	local bB = {
+		x = (C.y*vn.z-C.z*vn.y)/(C.x*vn.y-C.y*vn.x),
+		y = (C.x*vn.z-C.z*vn.x)/(C.y*vn.x-C.x*vn.y),
+		z = 1,
+	}
+	local cC = {
+		x = (B.y*vn.z-B.z*vn.y)/(B.x*vn.y-B.y*vn.x),
+		y = (B.x*vn.z-B.z*vn.x)/(B.y*vn.x-B.x*vn.y),
+		z = 1,
+	}
+
+	local aA = {
+		x = (v3.y*vn.z-v3.z*vn.y)/(v3.x*vn.y-v3.y*vn.x),
+		y = (v3.x*vn.z-v3.z*vn.x)/(v3.y*vn.x-v3.x*vn.y),
+		z = 1,
+	}]]
+	local B2 = vector.mirror(B, vn, C)
+	local C2 = vector.mirror(C, vn, B)
+
+	local BC = vector.subtract(C, B)
+	local BA = vector.multiply(B, -1)
+	local A2 = vector.add(vector.mirror(BA, vn, BC), B)
+
+	local bB = {z=1}
+	local area = {}
+	for z = cube_p1.z, cube_p2.z do
+		for y = cube_p1.y, cube_p2.y do
+			for x = cube_p1.x, cube_p2.x do
+				local p = {x=x, y=y, z=z}
+				local d = {
+					x = (p.y*vn.y+p.z*vn.z)/vn.x+p.x,
+					y = (p.x*vn.x+p.z*vn.z)/vn.y+p.y,
+					z = (p.x*vn.x+p.y*vn.y)/vn.z+p.z,
+				}
+				local dmin = math.min(math.abs(d.x), math.abs(d.y), math.abs(d.z))
+				if dmin <= 0.5 then
+					local ep = vector.new(p)
+					for n,i in pairs(d) do
+						if math.abs(i) == dmin then
+							ep[n] = ep[n]+i
+							break
+						end
+					end
+					if bB.x/ep.x > 0
+					and cC.x/ep.x > 0 then
+						table.insert(area, vector.add(pos, p))
+					end
+				end
+			end
+		end
+	end
+	return area
+end
+
 function vector.straightdelay(s, v, a)
 	if not a then
 		return s/v
@@ -251,7 +399,7 @@ function vector.inside(pos, minp, maxp)
 end
 
 function vector.minmax(p1, p2)
-	local p1 = vector.new(p1) --Are these 2 redefinitions necessary?
+	local p1 = vector.new(p1)
 	local p2 = vector.new(p2)
 	for _,i in ipairs({"x", "y", "z"}) do
 		if p1[i] > p2[i] then
