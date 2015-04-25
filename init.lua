@@ -238,16 +238,6 @@ function vector.sort(ps, preferred_coords)
 	return ps
 end
 
-function vector.between(v, v1, v2, range)
-	for i in pairs(v) do
-		if not (v1[i] < v[i]+range and v[i] < v2[i]+range)
-		and not (v1[i]+range > v[i] and v[i]+range > v2[i]) then
-			return false
-		end
-	end
-	return true
-end
-
 function vector.scalarproduct(v1, v2)
 	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
 end
@@ -274,7 +264,6 @@ function vector.mirror(pos, v, vb)
 	return vector.add(pos, vector.multiply(v, dif))
 end
 
--- doesnt work
 --local areas = {}
 function vector.area(ps)
 	-- sort positions and imagine the first one as vector.zero
@@ -335,6 +324,14 @@ function vector.area(ps)
 	local BA = vector.multiply(B, -1)
 	local A2 = vector.add(vector.mirror(BA, vn, BC), B)
 
+	local nB = vector.normalize(B)
+	local nC = vector.normalize(C)
+	local angle_BC = math.acos(vector.scalarproduct(nB, nC))
+
+	local BA = vector.normalize(vector.multiply(B, -1))
+	local BC = vector.normalize(vector.subtract(C, B))
+	local angle_AC = math.acos(vector.scalarproduct(BA, BC))
+
 	local bB = {z=1}
 	local area = {}
 	for z = cube_p1.z, cube_p2.z do
@@ -348,16 +345,37 @@ function vector.area(ps)
 				}
 				local dmin = math.min(math.abs(d.x), math.abs(d.y), math.abs(d.z))
 				if dmin <= 0.5 then
+					--[[ep.x*vn.x+ep.y*vn.y+ep.z*vn.z = 0
+					ep.x = p.x+n*vn.x
+					ep.y = p.y+n*vn.y
+					ep.z = p.z+n*vn.z
+
+					(p.x+n*vn.x)*vn.x+(p.y+n*vn.y)*vn.y+(p.z+n*vn.z)*vn.z = 0
+					p.x*vn.x+n*vn.x*vn.x+p.y*vn.y+n*vn.y*vn.y+p.z*vn.z+n*vn.z*vn.z = 0
+					n*vn.x*vn.x+n*vn.y*vn.y+n*vn.z*vn.z = -(p.x*vn.x+p.y*vn.y+p.z*vn.z)
+					n*(vn.x*vn.x+vn.y*vn.y+vn.z*vn.z) = -(p.x*vn.x+p.y*vn.y+p.z*vn.z)--]]
+					n = -(p.x*vn.x+p.y*vn.y+p.z*vn.z)/(vn.x*vn.x+vn.y*vn.y+vn.z*vn.z)
 					local ep = vector.new(p)
-					for n,i in pairs(d) do
+					ep = vector.add(ep, vector.multiply(vn, n))
+					--[[for n,i in pairs(d) do
 						if math.abs(i) == dmin then
 							ep[n] = ep[n]+i
 							break
 						end
-					end
-					if bB.x/ep.x > 0
-					and cC.x/ep.x > 0 then
-						table.insert(area, vector.add(pos, p))
+					end--]]
+					local nep = vector.normalize(ep)
+					local angle_Bep = math.acos(vector.scalarproduct(nB, nep))
+					local angle_Cep = math.acos(vector.scalarproduct(nC, nep))
+					local angldif = angle_BC - (angle_Bep+angle_Cep)
+					if math.abs(angldif) < 0.01 then
+						ep = vector.subtract(ep, B)
+						nep = vector.normalize(ep)
+						local angle_Aep = math.acos(vector.scalarproduct(BA, nep))
+						local angle_Cep = math.acos(vector.scalarproduct(BC, nep))
+						local angldif = angle_AC - (angle_Aep+angle_Cep)
+						if math.abs(angldif) < 0.01 then
+							table.insert(area, vector.add(pos, p))
+						end
 					end
 				end
 			end
