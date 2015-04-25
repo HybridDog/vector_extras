@@ -1,6 +1,8 @@
 local load_time_start = os.clock()
 
-function vector.pos_to_string(pos)
+local funcs = {}
+
+function funcs.pos_to_string(pos)
 	return "{x="..pos.x.."; y="..pos.y.."; z="..pos.z.."}"
 end
 
@@ -118,7 +120,7 @@ local function return_fine_line(pos, dir, range, scale)
 	return ps2
 end
 
-function vector.fine_line(pos, dir, range, scale)
+function funcs.fine_line(pos, dir, range, scale)
 	--assert_vector(pos)
 	if not range then --dir = pos2
 		dir = vector.direction(pos, dir)
@@ -127,7 +129,7 @@ function vector.fine_line(pos, dir, range, scale)
 	return return_fine_line(pos, dir, range, scale)
 end
 
-function vector.line(pos, dir, range, alt)
+function funcs.line(pos, dir, range, alt)
 	--assert_vector(pos)
 	if alt then
 		if not range then --dir = pos2
@@ -149,7 +151,7 @@ function vector.line(pos, dir, range, alt)
 end
 
 local twolines = {}
-function vector.twoline(x, y)
+function funcs.twoline(x, y)
 	local pstr = x.." "..y
 	local line = twolines[pstr]
 	if line then
@@ -183,7 +185,7 @@ function vector.twoline(x, y)
 end
 
 local threelines = {}
-function vector.threeline(x, y, z)
+function funcs.threeline(x, y, z)
 	local pstr = x.." "..y.." "..z
 	local line = threelines[pstr]
 	if line then
@@ -218,7 +220,7 @@ function vector.threeline(x, y, z)
 	return line
 end
 
-function vector.sort(ps, preferred_coords)
+function funcs.sort(ps, preferred_coords)
 	preferred_coords = preferred_coords or {"z", "y", "x"}
 	local a,b,c = unpack(preferred_coords)
 	local function ps_sorting(p1, p2)
@@ -238,11 +240,11 @@ function vector.sort(ps, preferred_coords)
 	return ps
 end
 
-function vector.scalarproduct(v1, v2)
+function funcs.scalar(v1, v2)
 	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
 end
 
-function vector.crossproduct(v1, v2)
+function funcs.cross(v1, v2)
 	return {
 		x = v1.y*v2.z - v1.z*v2.y,
 		y = v1.z*v2.x - v1.x*v2.z,
@@ -250,23 +252,10 @@ function vector.crossproduct(v1, v2)
 	}
 end
 
-function vector.mirror(pos, v, vb)
-	if vb then
-		v = vector.normalize(vector.crossproduct(v, vb))
-	end
-	local dx,dy,dz = v.x,v.y,v.z
-	local x,y,z = pos.x,pos.y,pos.z
-	local dif = (dx*x+dy*y+dz*z)/(dx*dx+dy*dy+dz*dz)
-	if dif == 0 then
-		return pos
-	end
-	dif = -dif*2
-	return vector.add(pos, vector.multiply(v, dif))
-end
-
+--not optimized
 --local areas = {}
-function vector.area(ps)
-	-- sort positions and imagine the first one as vector.zero
+function funcs.plane(ps)
+	-- sort positions and imagine the first one (A) as vector.zero
 	ps = vector.sort(ps)
 	local pos = ps[1]
 	local B = vector.subtract(ps[2], pos)
@@ -279,69 +268,48 @@ function vector.area(ps)
 		cube_p1[i] = math.min(B[i], C[i], 0)
 		cube_p2[i] = math.max(B[i], C[i], 0)
 	end
+	cube_p1 = vector.apply(cube_p1, math.floor)
+	cube_p2 = vector.apply(cube_p2, math.ceil)
 
-	local vn = vector.normalize(vector.crossproduct(B, C))
+	local vn = vector.normalize(vector.cross(B, C))
 
 	local nAB = vector.normalize(B)
 	local nAC = vector.normalize(C)
-	local angle_BAC = math.acos(vector.scalarproduct(nAB, nAC))
+	local angle_BAC = math.acos(vector.scalar(nAB, nAC))
 
 	local nBA = vector.multiply(nAB, -1)
 	local nBC = vector.normalize(vector.subtract(C, B))
-	local angle_ABC = math.acos(vector.scalarproduct(nBA, nBC))
+	local angle_ABC = math.acos(vector.scalar(nBA, nBC))
 
-	local area = {}
 	for z = cube_p1.z, cube_p2.z do
 		for y = cube_p1.y, cube_p2.y do
 			for x = cube_p1.x, cube_p2.x do
 				local p = {x=x, y=y, z=z}
-				local d = {
-					x = (p.y*vn.y+p.z*vn.z)/vn.x+p.x,
-					y = (p.x*vn.x+p.z*vn.z)/vn.y+p.y,
-					z = (p.x*vn.x+p.y*vn.y)/vn.z+p.z,
-				}
-				local dmin = math.min(math.abs(d.x), math.abs(d.y), math.abs(d.z))
-				if dmin <= 0.5 then
-					--[[ep.x*vn.x+ep.y*vn.y+ep.z*vn.z = 0
-					ep.x = p.x+n*vn.x
-					ep.y = p.y+n*vn.y
-					ep.z = p.z+n*vn.z
-
-					(p.x+n*vn.x)*vn.x+(p.y+n*vn.y)*vn.y+(p.z+n*vn.z)*vn.z = 0
-					p.x*vn.x+n*vn.x*vn.x+p.y*vn.y+n*vn.y*vn.y+p.z*vn.z+n*vn.z*vn.z = 0
-					n*vn.x*vn.x+n*vn.y*vn.y+n*vn.z*vn.z = -(p.x*vn.x+p.y*vn.y+p.z*vn.z)
-					n*(vn.x*vn.x+vn.y*vn.y+vn.z*vn.z) = -(p.x*vn.x+p.y*vn.y+p.z*vn.z)--]]
-					n = -(p.x*vn.x+p.y*vn.y+p.z*vn.z)/(vn.x*vn.x+vn.y*vn.y+vn.z*vn.z)
-					local ep = vector.new(p)
-					ep = vector.add(ep, vector.multiply(vn, n))
-					--[[for n,i in pairs(d) do
-						if math.abs(i) == dmin then
-							ep[n] = ep[n]+i
-							break
-						end
-					end--]]
+				local n = -vector.scalar(p, vn)/vector.scalar(vn, vn)
+				if math.abs(n) <= 0.5 then
+					local ep = vector.add(p, vector.multiply(vn, n))
 					local nep = vector.normalize(ep)
-					local angle_BAep = math.acos(vector.scalarproduct(nAB, nep))
-					local angle_CAep = math.acos(vector.scalarproduct(nAC, nep))
+					local angle_BAep = math.acos(vector.scalar(nAB, nep))
+					local angle_CAep = math.acos(vector.scalar(nAC, nep))
 					local angldif = angle_BAC - (angle_BAep+angle_CAep)
-					if math.abs(angldif) < 0.01 then
+					if math.abs(angldif) < 0.001 then
 						ep = vector.subtract(ep, B)
 						nep = vector.normalize(ep)
-						local angle_ABep = math.acos(vector.scalarproduct(nBA, nep))
-						local angle_CBep = math.acos(vector.scalarproduct(nBC, nep))
+						local angle_ABep = math.acos(vector.scalar(nBA, nep))
+						local angle_CBep = math.acos(vector.scalar(nBC, nep))
 						local angldif = angle_ABC - (angle_ABep+angle_CBep)
-						if math.abs(angldif) < 0.01 then
-							table.insert(area, vector.add(pos, p))
+						if math.abs(angldif) < 0.001 then
+							table.insert(ps, vector.add(pos, p))
 						end
 					end
 				end
 			end
 		end
 	end
-	return area
+	return ps
 end
 
-function vector.straightdelay(s, v, a)
+function funcs.straightdelay(s, v, a)
 	if not a then
 		return s/v
 	end
@@ -350,7 +318,7 @@ end
 
 vector.zero = {x=0, y=0, z=0}
 
-function vector.sun_dir(time)
+function funcs.sun_dir(time)
 	if not time then
 		time = minetest.get_timeofday()
 	end
@@ -363,7 +331,7 @@ function vector.sun_dir(time)
 	return {x=tmp, y=math.sqrt(1-tmp*tmp), z=0}
 end
 
-function vector.inside(pos, minp, maxp)
+function funcs.inside(pos, minp, maxp)
 	for _,i in pairs({"x", "y", "z"}) do
 		if pos[i] < minp[i]
 		or pos[i] > maxp[i] then
@@ -373,7 +341,7 @@ function vector.inside(pos, minp, maxp)
 	return true
 end
 
-function vector.minmax(p1, p2)
+function funcs.minmax(p1, p2)
 	local p1 = vector.new(p1)
 	local p2 = vector.new(p2)
 	for _,i in ipairs({"x", "y", "z"}) do
@@ -384,7 +352,7 @@ function vector.minmax(p1, p2)
 	return p1, p2
 end
 
-function vector.move(p1, p2, s)
+function funcs.move(p1, p2, s)
 	return vector.round(
 		vector.add(
 			vector.multiply(
@@ -400,7 +368,7 @@ function vector.move(p1, p2, s)
 end
 
 local explosion_tables = {}
-function vector.explosion_table(r)
+function funcs.explosion_table(r)
 	local table = explosion_tables[r]
 	if table then
 		return table
@@ -432,7 +400,7 @@ function vector.explosion_table(r)
 end
 
 local circle_tables = {}
-function vector.circle(r)
+function funcs.circle(r)
 	local table = circle_tables[r]
 	if table then
 		return table
@@ -455,7 +423,7 @@ function vector.circle(r)
 end
 
 local ring_tables = {}
-function vector.ring(r)
+function funcs.ring(r)
 	local table = ring_tables[r]
 	if table then
 		return table
@@ -496,10 +464,14 @@ function vector.ring(r)
 	return tab2
 end
 
-function vector.chunkcorner(pos)
+function funcs.chunkcorner(pos)
 	return {x=pos.x-pos.x%16, y=pos.y-pos.y%16, z=pos.z-pos.z%16}
 end
 
 dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
+
+for name,func in pairs(funcs) do
+	vector[name] = vector[name] or func
+end
 
 minetest.log("info", string.format("[vector_extras] loaded after ca. %.2fs", os.clock() - load_time_start))
