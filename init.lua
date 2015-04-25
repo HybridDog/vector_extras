@@ -282,57 +282,14 @@ function vector.area(ps)
 
 	local vn = vector.normalize(vector.crossproduct(B, C))
 
-	--[[bB.x*C.x+bB.y*C.y+C.z = 0
-	bB.x*vn.x+bB.y*vn.y+vn.z = 0
+	local nAB = vector.normalize(B)
+	local nAC = vector.normalize(C)
+	local angle_BAC = math.acos(vector.scalarproduct(nAB, nAC))
 
-	bB.x = -(bB.y*C.y+C.z)/*C.x
-	bB.x = -(bB.y*vn.y+vn.z)/vn.x
+	local nBA = vector.multiply(nAB, -1)
+	local nBC = vector.normalize(vector.subtract(C, B))
+	local angle_ABC = math.acos(vector.scalarproduct(nBA, nBC))
 
-	(bB.y*C.y+C.z)/*C.x = (bB.y*vn.y+vn.z)/vn.x
-	(bB.y*C.y+C.z)*vn.x = C.x*(bB.y*vn.y+vn.z)
-	bB.y*C.y*vn.x+C.z*vn.x = C.x*bB.y*vn.y+C.x*vn.z
-	bB.y*C.y*vn.x-C.x*bB.y*vn.y = C.x*vn.z-C.z*vn.x
-	bB.y*(C.y*vn.x-C.x*vn.y) = C.x*vn.z-C.z*vn.x
-	bB.y = (C.x*vn.z-C.z*vn.x)/(C.y*vn.x-C.x*vn.y)
-
-	bB.y = -(bB.x*C.x+C.z)/C.y
-	bB.y = -(bB.x*vn.x+vn.z)/vn.y]]
-
-	--[[
-	local v3 = vector.subtract(C, B)
-
-	local bB = {
-		x = (C.y*vn.z-C.z*vn.y)/(C.x*vn.y-C.y*vn.x),
-		y = (C.x*vn.z-C.z*vn.x)/(C.y*vn.x-C.x*vn.y),
-		z = 1,
-	}
-	local cC = {
-		x = (B.y*vn.z-B.z*vn.y)/(B.x*vn.y-B.y*vn.x),
-		y = (B.x*vn.z-B.z*vn.x)/(B.y*vn.x-B.x*vn.y),
-		z = 1,
-	}
-
-	local aA = {
-		x = (v3.y*vn.z-v3.z*vn.y)/(v3.x*vn.y-v3.y*vn.x),
-		y = (v3.x*vn.z-v3.z*vn.x)/(v3.y*vn.x-v3.x*vn.y),
-		z = 1,
-	}]]
-	local B2 = vector.mirror(B, vn, C)
-	local C2 = vector.mirror(C, vn, B)
-
-	local BC = vector.subtract(C, B)
-	local BA = vector.multiply(B, -1)
-	local A2 = vector.add(vector.mirror(BA, vn, BC), B)
-
-	local nB = vector.normalize(B)
-	local nC = vector.normalize(C)
-	local angle_BC = math.acos(vector.scalarproduct(nB, nC))
-
-	local BA = vector.normalize(vector.multiply(B, -1))
-	local BC = vector.normalize(vector.subtract(C, B))
-	local angle_AC = math.acos(vector.scalarproduct(BA, BC))
-
-	local bB = {z=1}
 	local area = {}
 	for z = cube_p1.z, cube_p2.z do
 		for y = cube_p1.y, cube_p2.y do
@@ -364,15 +321,15 @@ function vector.area(ps)
 						end
 					end--]]
 					local nep = vector.normalize(ep)
-					local angle_Bep = math.acos(vector.scalarproduct(nB, nep))
-					local angle_Cep = math.acos(vector.scalarproduct(nC, nep))
-					local angldif = angle_BC - (angle_Bep+angle_Cep)
+					local angle_BAep = math.acos(vector.scalarproduct(nAB, nep))
+					local angle_CAep = math.acos(vector.scalarproduct(nAC, nep))
+					local angldif = angle_BAC - (angle_BAep+angle_CAep)
 					if math.abs(angldif) < 0.01 then
 						ep = vector.subtract(ep, B)
 						nep = vector.normalize(ep)
-						local angle_Aep = math.acos(vector.scalarproduct(BA, nep))
-						local angle_Cep = math.acos(vector.scalarproduct(BC, nep))
-						local angldif = angle_AC - (angle_Aep+angle_Cep)
+						local angle_ABep = math.acos(vector.scalarproduct(nBA, nep))
+						local angle_CBep = math.acos(vector.scalarproduct(nBC, nep))
+						local angldif = angle_ABC - (angle_ABep+angle_CBep)
 						if math.abs(angldif) < 0.01 then
 							table.insert(area, vector.add(pos, p))
 						end
