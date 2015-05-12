@@ -3,7 +3,7 @@ local load_time_start = os.clock()
 local funcs = {}
 
 function funcs.pos_to_string(pos)
-	return "{x="..pos.x.."; y="..pos.y.."; z="..pos.z.."}"
+	return "("..pos.x.."|"..pos.y.."|"..pos.z..")"
 end
 
 local r_corr = 0.25 --remove a bit more nodes (if shooting diagonal) to let it look like a hole (sth like antialiasing)
