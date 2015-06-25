@@ -468,6 +468,47 @@ function funcs.chunkcorner(pos)
 	return {x=pos.x-pos.x%16, y=pos.y-pos.y%16, z=pos.z-pos.z%16}
 end
 
+function funcs.point_distance_minmax(p1, p2)
+	local p1 = vector.new(p1)
+	local p2 = vector.new(p2)
+	local min, max, vmin, vmax, num
+	for _,i in ipairs({"x", "y", "z"}) do
+		num = math.abs(p1[i] - p2[i])
+		if not vmin or num < vmin then
+			vmin = num
+			min = i
+		end
+		if not vmax or num > vmax then
+			vmax = num
+			max = i
+		end
+	end
+	return min, max
+end
+
+function funcs.collision(p1, p2)
+	local clear, node_pos, collision_pos, max, min, dmax, dcmax, pt
+	clear, node_pos = minetest.line_of_sight(p1, p2)
+	if clear then
+		return false
+	end
+	collision_pos = {}
+	min, max = funcs.point_distance_minmax(node_pos, p2)
+	if node_pos[max] > p2[max] then
+		collision_pos[max] = node_pos[max] - 0.5
+	else
+		collision_pos[max] = node_pos[max] + 0.5
+	end
+	dmax = p2[max] - node_pos[max]
+	dcmax = p2[max] - collision_pos[max]
+	pt = dcmax/dmax
+
+	for _,i in ipairs({"x", "y", "z"}) do
+		collision_pos[i] = p2[i] - (p2[i] - node_pos[i]) * pt
+	end
+	return true, collision_pos, node_pos
+end
+
 dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
 
 for name,func in pairs(funcs) do
