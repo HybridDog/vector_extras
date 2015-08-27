@@ -316,7 +316,7 @@ function funcs.straightdelay(s, v, a)
 	return (math.sqrt(v*v+2*a*s)-v)/a
 end
 
-vector.zero = {x=0, y=0, z=0}
+vector.zero = vector.new()
 
 function funcs.sun_dir(time)
 	if not time then
@@ -367,6 +367,10 @@ function funcs.move(p1, p2, s)
 	)
 end
 
+function funcs.from_number(i)
+	return {x=i, y=i, z=i}
+end
+
 local explosion_tables = {}
 function funcs.explosion_table(r)
 	local table = explosion_tables[r]
@@ -395,6 +399,90 @@ function funcs.explosion_table(r)
 		end
 	end
 	explosion_tables[r] = tab
+	minetest.log("info", string.format("[vector_extras] table created after ca. %.2fs", os.clock() - t1))
+	return tab
+end
+
+local default_nparams = {
+   offset = 0,
+   scale = 1,
+   seed = 1337,
+   octaves = 6,
+   persist = 0.6
+}
+function funcs.explosion_perlin(pos, rmin, rmax, nparams)
+	local t1 = os.clock()
+
+	local r = math.ceil(rmax)
+	nparams = nparams or {}
+	for i,v in pairs(default_nparams) do
+		nparams[i] = nparams[i] or v
+	end
+	nparams.spread = nparams.spread or vector.from_number(r*5)
+
+	local map = minetest.get_perlin_map(nparams, vector.from_number(r+r+1)):get3dMap_flat(pos)
+
+	local id = 1
+
+
+	local bare_maxdist = rmax*rmax
+	local bare_mindist = rmin*rmin
+
+	local maxdist = math.sqrt(bare_maxdist)
+	local mindist = math.sqrt(bare_mindist)
+	local dist_diff = maxdist-mindist
+	mindist = mindist/dist_diff
+
+	local pval_min, pval_max
+
+	local tab, n = {}, 1
+	for z=-r,r do
+		local bare_dist = z*z
+		for y=-r,r do
+			local bare_dist = bare_dist+y*y
+			for x=-r,r do
+				local bare_dist = bare_dist+x*x
+				local add = bare_dist < bare_mindist
+				local pval, distdiv
+				if not add
+				and bare_dist <= bare_maxdist then
+					distdiv = math.sqrt(bare_dist)/dist_diff-mindist
+					pval = math.abs(map[id]) -- strange perlin values…
+					if not pval_min then
+						pval_min = pval
+						pval_max = pval
+					else
+						pval_min = math.min(pval, pval_min)
+						pval_max = math.max(pval, pval_max)
+					end
+					add = true--distdiv < 1-math.abs(map[id])
+				end
+
+				if add then
+					local np={x=x, y=y, z=z}
+					tab[n] = {np, pval, distdiv}
+					n = n+1
+				end
+				id = id+1
+			end
+		end
+	end
+
+	-- change strange values
+	local pval_diff = pval_max - pval_min
+	pval_min = pval_min/pval_diff
+
+	for n,i in pairs(tab) do
+		if i[2] then
+			local new_pval = (i[2]/pval_diff - pval_min)
+			if i[3] < math.abs(new_pval) then
+				tab[n] = {i[1]}
+			else
+				tab[n] = nil
+			end
+		end
+	end
+
 	minetest.log("info", string.format("[vector_extras] table created after ca. %.2fs", os.clock() - t1))
 	return tab
 end
