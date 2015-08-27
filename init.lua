@@ -410,7 +410,7 @@ local default_nparams = {
    octaves = 6,
    persist = 0.6
 }
-function funcs.explosion_perlin(pos, rmin, rmax, nparams)
+function funcs.explosion_perlin(rmin, rmax, nparams)
 	local t1 = os.clock()
 
 	local r = math.ceil(rmax)
@@ -420,17 +420,16 @@ function funcs.explosion_perlin(pos, rmin, rmax, nparams)
 	end
 	nparams.spread = nparams.spread or vector.from_number(r*5)
 
+	local pos = {x=math.random(-30000, 30000), y=math.random(-30000, 30000), z=math.random(-30000, 30000)}
 	local map = minetest.get_perlin_map(nparams, vector.from_number(r+r+1)):get3dMap_flat(pos)
 
 	local id = 1
 
-
 	local bare_maxdist = rmax*rmax
 	local bare_mindist = rmin*rmin
 
-	local maxdist = math.sqrt(bare_maxdist)
 	local mindist = math.sqrt(bare_mindist)
-	local dist_diff = maxdist-mindist
+	local dist_diff = math.sqrt(bare_maxdist)-mindist
 	mindist = mindist/dist_diff
 
 	local pval_min, pval_max
@@ -459,8 +458,7 @@ function funcs.explosion_perlin(pos, rmin, rmax, nparams)
 				end
 
 				if add then
-					local np={x=x, y=y, z=z}
-					tab[n] = {np, pval, distdiv}
+					tab[n] = {{x=x, y=y, z=z}, pval, distdiv}
 					n = n+1
 				end
 				id = id+1
