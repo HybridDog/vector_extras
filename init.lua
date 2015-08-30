@@ -472,9 +472,11 @@ function funcs.explosion_perlin(rmin, rmax, nparams)
 
 	for n,i in pairs(tab) do
 		if i[2] then
-			local new_pval = (i[2]/pval_diff - pval_min)
-			if i[3] < math.abs(new_pval) then
+			local new_pval = math.abs(i[2]/pval_diff - pval_min)
+			if i[3]+0.33 < new_pval then
 				tab[n] = {i[1]}
+			elseif i[3] < new_pval then
+				tab[n] = {i[1], true}
 			else
 				tab[n] = nil
 			end
@@ -594,6 +596,107 @@ function funcs.collision(p1, p2)
 	end
 	return true, collision_pos, node_pos
 end
+
+function funcs.get_data_from_pos(tab, z,y,x)
+	local data = tab[z]
+	if data then
+		data = data[y]
+		if data then
+			return data[x]
+		end
+	end
+end
+
+function funcs.set_data_to_pos(tab, z,y,x, data)
+	if tab[z] then
+		if tab[z][y] then
+			tab[z][y][x] = data
+			return
+		end
+		tab[z][y] = {[x] = data}
+		return
+	end
+	tab[z] = {[y] = {[x] = data}}
+end
+
+function funcs.set_data_to_pos_optional(tab, z,y,x, data)
+	if vector.get_data_from_pos(tab, z,y,x) ~= nil then
+		return
+	end
+	funcs.set_data_to_pos(tab, z,y,x, data)
+end
+
+function funcs.remove_data_from_pos(tab, z,y,x)
+	if vector.get_data_from_pos(tab, z,y,x) == nil then
+		return
+	end
+	tab[z][y][x] = nil
+	if not next(tab[z][y]) then
+		tab[z][y] = nil
+	end
+	if not next(tab[z]) then
+		tab[z] = nil
+	end
+end
+
+function funcs.get_data_pos_table(tab)
+	local t,n = {},1
+	local minz, miny, minx, maxz, maxy, maxx
+	for z,yxs in pairs(tab) do
+		if not minz then
+			minz = z
+			maxz = z
+		else
+			minz = math.min(minz, z)
+			maxz = math.max(maxz, z)
+		end
+		for y,xs in pairs(yxs) do
+			if not miny then
+				miny = y
+				maxy = y
+			else
+				miny = math.min(miny, y)
+				maxy = math.max(maxy, y)
+			end
+			for x,v in pairs(xs) do
+				if not minx then
+					minx = x
+					maxx = x
+				else
+					minx = math.min(minx, x)
+					maxx = math.max(maxx, x)
+				end
+				t[n] = {{z, y, x}, v}
+				n = n+1
+			end
+		end
+	end
+	return t, {x=minx, y=miny, z=minz}, {x=maxx, y=maxy, z=maxz}, n-1
+end
+
+function funcs.update_minp_maxp(minp, maxp, pos)
+	for _,i in pairs({"z", "y", "x"}) do
+		minp[i] = math.min(minp[i], pos[i])
+		maxp[i] = math.max(maxp[i], pos[i])
+	end
+end
+
+function funcs.quickadd(pos, z,y,x)
+	if z then
+		pos.z = pos.z+z
+	end
+	if y then
+		pos.y = pos.y+y
+	end
+	if x then
+		pos.x = pos.x+x
+	end
+end
+
+function funcs.unpack(pos)
+	return pos.z, pos.y, pos.x
+end
+
 
 dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
 
