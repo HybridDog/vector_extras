@@ -666,7 +666,7 @@ function funcs.get_data_pos_table(tab)
 					minx = math.min(minx, x)
 					maxx = math.max(maxx, x)
 				end
-				t[n] = {{z, y, x}, v}
+				t[n] = {z,y,x, v}
 				n = n+1
 			end
 		end
