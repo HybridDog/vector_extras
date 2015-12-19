@@ -237,7 +237,6 @@ function funcs.sort(ps, preferred_coords)
 		end
 	end
 	table.sort(ps, ps_sorting)
-	return ps
 end
 
 function funcs.scalar(v1, v2)
