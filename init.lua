@@ -696,6 +696,25 @@ function funcs.unpack(pos)
 	return pos.z, pos.y, pos.x
 end
 
+function funcs.get_max_coords(pos)
+	if pos.x < pos.y then
+		if pos.y < pos.z then
+			return "z", "y", "x"
+		end
+		if pos.x < pos.z then
+			return "y", "z", "x"
+		end
+		return "y", "x", "z"
+	end
+	if pos.x < pos.z then
+		return "z", "x", "y"
+	end
+	if pos.y < pos.z then
+		return "x", "z", "y"
+	end
+	return "x", "y", "z"
+end
+
 
 dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
 
