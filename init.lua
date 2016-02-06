@@ -465,6 +465,9 @@ function funcs.explosion_perlin(rmin, rmax, nparams)
 		end
 	end
 
+	map = nil
+	collectgarbage()
+
 	-- change strange values
 	local pval_diff = pval_max - pval_min
 	pval_min = pval_min/pval_diff
