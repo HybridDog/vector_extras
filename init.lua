@@ -719,10 +719,14 @@ function funcs.get_max_coords(pos)
 end
 
 
-dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
+--dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
 
 for name,func in pairs(funcs) do
-	vector[name] = vector[name] or func
+	if vector[name] then
+		minetest.log("error", "[vector_extras] vector."..name.." already exists.")
+	else
+		vector[name] = func
+	end
 end
 
 minetest.log("info", string.format("[vector_extras] loaded after ca. %.2fs", os.clock() - load_time_start))
