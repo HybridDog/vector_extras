@@ -97,36 +97,51 @@ local function return_line(pos, dir, range) --range ~= length
 	return tab
 end
 
-local function table_contains2(t, v)
-	for i = #t, 1, -1 do
-		if t[i] == v then
-			return true
+function funcs.rayIter(pos, dir)
+	-- make a table of possible movements
+	local step = {}
+	for i in pairs(pos) do
+		local v = math.sign(dir[i])
+		if v ~= 0 then
+			step[i] = v
 		end
 	end
-	return false
-end
 
-local function return_fine_line(pos, dir, range, scale)
-	local ps1 = return_line(vector.round(vector.multiply(pos, scale)), dir, range*scale)
-	local ps2 = {}
-	local ps2_num = 1
-	for _,p1 in ipairs(ps1) do
-		local p2 = vector.round(vector.divide(p1, scale))
-		if not table_contains2(ps2, p2) then
-			ps2[ps2_num] = p2
-			ps2_num = ps2_num+1
+	local p
+	return function()
+		if not p then
+			-- avoid skipping the first position
+			p = vector.round(pos)
+			return vector.new(p)
 		end
+
+		-- find the position which has the smallest distance to the line
+		local choose = {}
+		local choosefit = vector.new()
+		for i in pairs(step) do
+			choose[i] = vector.new(p)
+			choose[i][i] = choose[i][i] + step[i]
+			choosefit[i] = vector.scalar(vector.normalize(vector.subtract(choose[i], pos)), dir)
+		end
+		p = choose[vector.get_max_coord(choosefit)]
+
+		return vector.new(p)
 	end
-	return ps2
 end
 
-function funcs.fine_line(pos, dir, range, scale)
-	--assert_vector(pos)
+function funcs.fine_line(pos, dir, range)
 	if not range then --dir = pos2
-		dir = vector.direction(pos, dir)
-		range = vector.distance(pos, dir)
+		dir, range = vector.direction(pos, dir), vector.distance(pos, dir)
 	end
-	return return_fine_line(pos, dir, range, scale)
+	local result,n = {},1
+	for p in vector.rayIter(pos, dir) do
+		if vector.distance(p, pos) > range then
+			break
+		end
+		result[n] = p
+		n = n+1
+	end
+	return result
 end
 
 function funcs.line(pos, dir, range, alt)
@@ -137,9 +152,9 @@ function funcs.line(pos, dir, range, alt)
 		end
 		return return_line(pos, dir, range)
 	end
-	if range then --dir = pos2
+	if range then
 		dir = vector.round(vector.multiply(dir, range))
-	else
+	else --dir = pos2
 		dir = vector.subtract(dir, pos)
 	end
 	local line,n = {},1
@@ -697,6 +712,19 @@ end
 
 function funcs.unpack(pos)
 	return pos.z, pos.y, pos.x
+end
+
+function funcs.get_max_coord(vec)
+	if vec.x < vec.y then
+		if vec.y < vec.z then
+			return "z"
+		end
+		return "y"
+	end
+	if vec.x < vec.z then
+		return "z"
+	end
+	return "x"
 end
 
 function funcs.get_max_coords(pos)
