@@ -746,6 +746,10 @@ function funcs.get_max_coords(pos)
 	return "x", "y", "z"
 end
 
+function funcs.serialize(vec)
+	return "{x=" .. vec.x .. ",y=" .. vec.y .. ",z=" .. vec.z .. "}"
+end
+
 
 --dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
 
