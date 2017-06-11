@@ -626,7 +626,6 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 	local yswitch = 0.5 * (vel.y * vel.y  - 1) / gravity + pos.y
 
 	local t_fall_start = (vel.y + 1) / gravity
-	local t_apex = vel.y / gravity
 	local t_raise_end = (vel.y - 1) / gravity
 	if t_fall_start > 0 then
 		-- the right 45° angle point wasn't passed yet
@@ -639,6 +638,7 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 					x = math.floor(vel.x * t + pos.x +.5),
 					y = y,
 					z = math.floor(vel.z * t + pos.z +.5),
+					name = "default:stone"
 				}
 				pointcount = pointcount+1
 				waypoints[pointcount] = {p, t}
@@ -674,7 +674,7 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 				[bhp] = i,
 				y = math.floor(-0.5 * gravity * t * t + vel.y * t + pos.y +.5),
 				[shp] = math.floor(vel[shp] * t + pos[shp] +.5),
-									t=t
+				name = "default:wood"
 			}
 			pointcount = pointcount+1
 			waypoints[pointcount] = {p, t}
@@ -691,13 +691,19 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 		local p = {
 			x = math.floor(vel.x * t + pos.x +.5),
 			y = y,
-			z = math.floor(vel.z * t + pos.z +.5)
+			z = math.floor(vel.z * t + pos.z +.5),
+			name = "default:mese"
 		}
 		pointcount = pointcount+1
 		waypoints[pointcount] = {p, t}
 		y = y-1
 	end
 end
+		--~ local ps = vector.throw_parabola(player:getpos(), player:get_look_dir(),
+			--~ 0.03, 80, true)
+		--~ for i = 1,#ps do
+			--~ minetest.set_node(ps[i], ps[i])
+		--~ end
 
 function funcs.throw_parabola(pos, vel, gravity, point_count, thicken)
 	local waypoints = {}
