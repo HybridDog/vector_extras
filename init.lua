@@ -569,6 +569,146 @@ function funcs.ring(r)
 	return tab2
 end
 
+	--~ posy(t) = att + bt + c
+	--~ vely(t) = 2at + b
+	--~ accy(t) = 2a
+
+	--~ a = -0.5gravity
+	--~ vely(0) = b = vel.y
+	--~ posy(0) = c = pos.y
+
+	--~ posy(t) = -0.5gravity*tt + vel.y*t + pos.y
+	--~ vely(t) = -gravity*t + vel.y
+
+	--~ Scheitel:
+	--~ vely(t) = 0 = -gravity*t + vel.y
+	--~ t = vel.y / gravity
+
+	--~ 45°
+	--~ vely(t) = +/-1 = -gravity*t + vel.y
+	--~ t = (vel.y - 1) / gravity //links
+	--~ t = (vel.y + 1) / gravity //rechts
+
+	--~ yswitch = posy(t) //links und rechts gleich
+	--~ yswitch = -0.5gravity*((vel.y + 1) / gravity)^2 + vel.y*(vel.y + 1) / gravity + pos.y
+	--~ yswitch = -0.5(vel.y + 1)^2 / gravity + (vel.y^2 + vel.y) / gravity + pos.y
+	--~ yswitch = -0.5(vel.y^2 + 2vel.y + 1) / gravity + (vel.y^2 + vel.y) / gravity + pos.y
+	--~ yswitch = (-0.5vel.y^2 - vel.y - 0.5 + vel.y^2 + vel.y) / gravity + pos.y
+	--~ yswitch = (0.5vel.y^2 - 0.5) / gravity + pos.y
+
+	--~ yswitch = -0.5gravity*((vel.y - 1) / gravity)^2 + vel.y*(vel.y - 1) / gravity + pos.y
+	--~ yswitch = -0.5(vel.y - 1)^2 / gravity + (vel.y^2 - vel.y) / gravity + pos.y
+	--~ yswitch = (-0.5(vel.y - 1)^2  + vel.y^2 - vel.y) / gravity + pos.y
+	--~ yswitch = (-0.5(vel.y^2 - 2vel.y + 1)  + vel.y^2 - vel.y) / gravity + pos.y
+	--~ yswitch = (-0.5vel.y^2  + vel.y - 0.5  + vel.y^2 - vel.y) / gravity + pos.y
+	--~ yswitch = (0.5vel.y^2  - 0.5) / gravity + pos.y
+
+	--~ posy nach t umstellen, kleineres beim Aufstieg, größeres beim Fall
+	--~ posy = -0.5gravity*tt + vel.y*t + pos.y
+	--~ 0 = -0.5gravity*tt + vel.y*t + pos.y - posy //→Mitternachtsformel
+	--~ t = -vel.y +-rt(vel.y^2 -4(-0.5gravity)(pos.y - posy)) / 2(-0.5gravity)
+	--~ t = -vel.y +-rt(vel.y^2 +2gravity(pos.y - posy)) / gravity
+	--~ t_rise = -vel.y - rt(vel.y^2 +2gravity(pos.y - posy)) / gravity
+	--~ t_fall = -vel.y + rt(vel.y^2 +2gravity(pos.y - posy)) / gravity
+
+	--~ posx(t) = vel.x * t + pos.x
+	--~ posz(t) = vel.z * t + pos.z
+
+	--~ posx nach t umstellen
+	--~ posx - pos.x = vel.x * t
+	--~ t = (posx - pos.x) / vel.x
+
+
+local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
+	local pointcount = 0
+
+	-- the height of the 45° angle point
+	local yswitch = 0.5 * (vel.y * vel.y  - 1) / gravity + pos.y
+
+	local t_fall_start = (vel.y + 1) / gravity
+	local t_apex = vel.y / gravity
+	local t_raise_end = (vel.y - 1) / gravity
+	if t_fall_start > 0 then
+		-- the right 45° angle point wasn't passed yet
+		if t_raise_end > 0 then
+			-- put points from before the 45° angle
+			for y = math.ceil(pos.y), math.floor(yswitch +.5) do
+				local t = -vel.y
+					- math.sqrt(vel.y * vel.y - 2 * gravity * (y - pos.y)) / gravity
+				local p = {
+					x = math.floor(vel.x * t + pos.x +.5),
+					y = y,
+					z = math.floor(vel.z * t + pos.z +.5),
+				}
+				pointcount = pointcount+1
+				waypoints[pointcount] = {p, t}
+				if pointcount == max_pointcount then
+					return
+				end
+			end
+		end
+		-- smaller and bigger horizonzal pivot
+		local shp, bhp
+		if math.abs(vel.x) > math.abs(vel.z) then
+			shp = "z"
+			bhp = "x"
+		else
+			shp = "x"
+			bhp = "z"
+		end
+		-- put points between the 45° angles
+		local cstart, cdir
+		local cend = math.floor(vel[bhp] * t_fall_start + pos[bhp] +.5)
+		if vel[bhp] > 0 then
+			cstart = math.floor(math.max(pos[bhp],
+				vel[bhp] * t_raise_end + pos[bhp]) +.5)
+			cdir = 1
+		else
+			cstart = math.floor(math.min(pos[bhp],
+				vel[bhp] * t_raise_end + pos[bhp]) +.5)
+			cdir = -1
+		end
+		for i = cstart, cend, cdir do
+			local t = (i - pos[bhp]) / vel[bhp]
+			local p = {
+				[bhp] = i,
+				y = math.floor(-0.5 * gravity * t * t + vel.y * t + pos.y +.5),
+				[shp] = math.floor(vel[shp] * t + pos[shp] +.5),
+									t=t
+			}
+			pointcount = pointcount+1
+			waypoints[pointcount] = {p, t}
+			if pointcount == max_pointcount then
+				return
+			end
+		end
+	end
+	-- put points from after the 45° angle
+	local y = math.floor(math.min(yswitch, pos.y) +.5)
+	while pointcount < max_pointcount do
+		local t = -vel.y
+			+ math.sqrt(vel.y * vel.y + 2 * gravity * (pos.y - y)) / gravity
+		local p = {
+			x = math.floor(vel.x * t + pos.x +.5),
+			y = y,
+			z = math.floor(vel.z * t + pos.z +.5)
+		}
+		pointcount = pointcount+1
+		waypoints[pointcount] = {p, t}
+		y = y-1
+	end
+end
+
+function funcs.throw_parabola(pos, vel, gravity, point_count, thicken)
+	local waypoints = {}
+	get_parabola_points(pos, vel, gravity, waypoints, point_count)
+	local ps = {}
+	for i = 1,#waypoints do
+		ps[i] = waypoints[i][1]
+	end
+	return ps
+end
+
 function funcs.chunkcorner(pos)
 	return {x=pos.x-pos.x%16, y=pos.y-pos.y%16, z=pos.z-pos.z%16}
 end
