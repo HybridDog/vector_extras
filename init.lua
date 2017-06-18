@@ -577,7 +577,7 @@ end
 	--~ vely(0) = b = vel.y
 	--~ posy(0) = c = pos.y
 
-	--~ posy(t) = -0.5gravity*tt + vel.y*t + pos.y
+	--~ posy(t) = -0.5 * gravity * t * t + vel.y * t + pos.y
 	--~ vely(t) = -gravity*t + vel.y
 
 	--~ Scheitel:
@@ -585,31 +585,42 @@ end
 	--~ t = vel.y / gravity
 
 	--~ 45°
-	--~ vely(t) = +/-1 = -gravity*t + vel.y
-	--~ t = (vel.y - 1) / gravity //links
-	--~ t = (vel.y + 1) / gravity //rechts
+	--~ vely(t)^2 = velx(t)^2 + velz(t)^2
+	--~ (-gravity*t + vel.y)^2 = vel.x * vel.x + vel.z * vel.z
+	--~ gravity^2 * t^2 + vel.y^2 - -2*gravity*t*vel.y = vel.x * vel.x + vel.z * vel.z
+	--~ gravity^2 * t^2 - 2*gravity*vel.y * t + (vel.y^2 - vel.x^2 - vel.z^2) = 0
+	--~ t = (2*gravity*vel.y .. rt((2*gravity*vel.y)^2 - 4*gravity^2*(vel.y^2 - vel.x^2 - vel.z^2))) / (2*gravity^2)
+	--~ t = (2*gravity*vel.y .. rt(4*gravity^2*vel.y^2 - 4*gravity^2*(vel.y^2) + 4*gravity^2*(vel.x^2 + vel.z^2))) / (2*gravity^2)
+	--~ t = (2*gravity*vel.y .. 2*gravity*rt(vel.x^2 + vel.z^2)) / (2*gravity^2)
+	--~ t = (vel.y .. rt(vel.x^2 + vel.z^2)) / gravity
+	--~ t1 = (vel.y - math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity
+	--~ t2 = (vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity
 
-	--~ yswitch = posy(t) //links und rechts gleich
-	--~ yswitch = -0.5gravity*((vel.y + 1) / gravity)^2 + vel.y*(vel.y + 1) / gravity + pos.y
-	--~ yswitch = -0.5(vel.y + 1)^2 / gravity + (vel.y^2 + vel.y) / gravity + pos.y
-	--~ yswitch = -0.5(vel.y^2 + 2vel.y + 1) / gravity + (vel.y^2 + vel.y) / gravity + pos.y
-	--~ yswitch = (-0.5vel.y^2 - vel.y - 0.5 + vel.y^2 + vel.y) / gravity + pos.y
-	--~ yswitch = (0.5vel.y^2 - 0.5) / gravity + pos.y
+	--~ yswitch = posy(t1) (= posy(t2)) //links und rechts gleich
+	--~ yswitch = -0.5 * gravity * ((vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity)^2 + vel.y * ((vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity) + pos.y
+	--~ yswitch = -0.5 * gravity * (vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z))^2 / gravity^2 + vel.y * ((vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity) + pos.y
+	--~ yswitch = -0.5 * (vel.y^2 + 2*vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.x^2 + vel.z^2) / gravity + ((vel.y^2 + vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity) + pos.y
+	--~ yswitch = (-0.5 * (vel.y^2 + 2*vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.x^2 + vel.z^2) + ((vel.y^2 + vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z)))) / gravity + pos.y
+	--~ yswitch = (-0.5 * vel.y^2 - vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z) - 0.5 * vel.x^2 - 0.5 * vel.z^2 + vel.y^2 + vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity + pos.y
+	--~ yswitch = (-0.5 * vel.y^2 - 0.5 * vel.x^2 - 0.5 * vel.z^2 + vel.y^2) / gravity + pos.y
+	--~ yswitch = (0.5 * vel.y^2 - 0.5 * vel.x^2 - 0.5 * vel.z^2) / gravity + pos.y
+	--~ yswitch = -0.5 * (vel.x * vel.x + vel.z * vel.z - vel.y * vel.y) / gravity + pos.y
 
-	--~ yswitch = -0.5gravity*((vel.y - 1) / gravity)^2 + vel.y*(vel.y - 1) / gravity + pos.y
-	--~ yswitch = -0.5(vel.y - 1)^2 / gravity + (vel.y^2 - vel.y) / gravity + pos.y
-	--~ yswitch = (-0.5(vel.y - 1)^2  + vel.y^2 - vel.y) / gravity + pos.y
-	--~ yswitch = (-0.5(vel.y^2 - 2vel.y + 1)  + vel.y^2 - vel.y) / gravity + pos.y
-	--~ yswitch = (-0.5vel.y^2  + vel.y - 0.5  + vel.y^2 - vel.y) / gravity + pos.y
-	--~ yswitch = (0.5vel.y^2  - 0.5) / gravity + pos.y
 
-	--~ posy nach t umstellen, kleineres beim Aufstieg, größeres beim Fall
-	--~ posy = -0.5gravity*tt + vel.y*t + pos.y
-	--~ 0 = -0.5gravity*tt + vel.y*t + pos.y - posy //→Mitternachtsformel
-	--~ t = -vel.y +-rt(vel.y^2 -4(-0.5gravity)(pos.y - posy)) / 2(-0.5gravity)
-	--~ t = -vel.y +-rt(vel.y^2 +2gravity(pos.y - posy)) / gravity
-	--~ t_rise = -vel.y - rt(vel.y^2 +2gravity(pos.y - posy)) / gravity
-	--~ t_fall = -vel.y + rt(vel.y^2 +2gravity(pos.y - posy)) / gravity
+	--~ 45° Zeitpunkte kleineres beim Aufstieg, größeres beim Fall
+	--~ (-gravity*t + vel.y)^2 = vel.x * vel.x + vel.z * vel.z
+	--~ -gravity*t + vel.y = ..math.sqrt(vel.x * vel.x + vel.z * vel.z)
+	--~ t = (..math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
+	--~ t_raise = (-math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
+	--~ t_fall = (math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
+
+	--~ posy nach t umstellen
+	--~ y = -0.5 * gravity * t * t + vel.y * t + pos.y
+	--~ 0 = -0.5 * gravity * t * t + vel.y * t + pos.y - y
+	--~ t = (-vel.y .. math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / (-gravity)
+	--~ t = (vel.y .. math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
+	--~ t_up = (vel.y - math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
+	--~ t_down = (vel.y + math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
 
 	--~ posx(t) = vel.x * t + pos.x
 	--~ posz(t) = vel.z * t + pos.z
@@ -623,17 +634,19 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 	local pointcount = 0
 
 	-- the height of the 45° angle point
-	local yswitch = 0.5 * (vel.y * vel.y  - 1) / gravity + pos.y
+	local yswitch = -0.5 * (vel.x * vel.x + vel.z * vel.z - vel.y * vel.y)
+		/ gravity + pos.y
 
-	local t_fall_start = (vel.y + 1) / gravity
-	local t_raise_end = (vel.y - 1) / gravity
+	-- the times of the 45° angle point
+	t_raise_end = (-math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
+	t_fall_start = (math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
 	if t_fall_start > 0 then
 		-- the right 45° angle point wasn't passed yet
 		if t_raise_end > 0 then
 			-- put points from before the 45° angle
 			for y = math.ceil(pos.y), math.floor(yswitch +.5) do
-				local t = -vel.y
-					- math.sqrt(vel.y * vel.y - 2 * gravity * (y - pos.y)) / gravity
+				local t = (vel.y -
+					math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
 				local p = {
 					x = math.floor(vel.x * t + pos.x +.5),
 					y = y,
@@ -684,10 +697,15 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 		end
 	end
 	-- put points from after the 45° angle
-	local y = math.floor(math.min(yswitch, pos.y) +.5)
+	local y = yswitch
+	if vel.y < 0
+	and pos.y < yswitch then
+		y = pos.y
+	end
+	local y = math.floor(y +.5)
 	while pointcount < max_pointcount do
-		local t = -vel.y
-			+ math.sqrt(vel.y * vel.y + 2 * gravity * (pos.y - y)) / gravity
+		local t = (vel.y +
+			math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
 		local p = {
 			x = math.floor(vel.x * t + pos.x +.5),
 			y = y,
@@ -699,11 +717,26 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 		y = y-1
 	end
 end
-		--~ local ps = vector.throw_parabola(player:getpos(), player:get_look_dir(),
-			--~ 0.03, 80, true)
-		--~ for i = 1,#ps do
-			--~ minetest.set_node(ps[i], ps[i])
+--[[
+minetest.override_item("default:axe_wood", {
+	on_use = function(_, player)
+		local dir = player:get_look_dir()
+		local pos = player:getpos()
+		local grav = 0.03
+		local ps = vector.throw_parabola(pos, dir, grav, 80, true)
+		for i = 1,#ps do
+			minetest.set_node(ps[i], ps[i])
+		end
+		--~ for t = 0,50,3 do
+			--~ local p = {
+				--~ x = dir.x * t + pos.x,
+				--~ y = -0.5*grav*t*t + dir.y*t + pos.y,
+				--~ z = dir.z * t + pos.z
+			--~ }
+			--~ minetest.set_node(p, {name="default:sandstone"})
 		--~ end
+	end,
+})--]]
 
 function funcs.throw_parabola(pos, vel, gravity, point_count, thicken)
 	local waypoints = {}
