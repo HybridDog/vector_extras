@@ -552,7 +552,8 @@ function funcs.ring(r)
 		end
 	end
 
-	local tab2, n = {}, 1
+	local tab2 = {}
+	n = 1
 	for _,i in ipairs(tab) do
 		for _,j in ipairs({
 			{i.x, i.z},
@@ -630,16 +631,18 @@ end
 	--~ t = (posx - pos.x) / vel.x
 
 
-local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
+local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount,
+		time)
 	local pointcount = 0
 
 	-- the height of the 45° angle point
-	local yswitch = -0.5 * (vel.x * vel.x + vel.z * vel.z - vel.y * vel.y)
+	local yswitch = -0.5 * (vel.x^2 + vel.z^2 - vel.y^2)
 		/ gravity + pos.y
 
 	-- the times of the 45° angle point
-	t_raise_end = (-math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
-	t_fall_start = (math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
+	local i = math.sqrt(vel.x^2 + vel.z^2)
+	local t_raise_end = (-i + vel.y) / gravity
+	local t_fall_start = (i + vel.y) / gravity
 	if t_fall_start > 0 then
 		-- the right 45° angle point wasn't passed yet
 		if t_raise_end > 0 then
@@ -647,11 +650,13 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 			for y = math.ceil(pos.y), math.floor(yswitch +.5) do
 				local t = (vel.y -
 					math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
+				if t > time then
+					return
+				end
 				local p = {
 					x = math.floor(vel.x * t + pos.x +.5),
 					y = y,
 					z = math.floor(vel.z * t + pos.z +.5),
-					name = "default:stone"
 				}
 				pointcount = pointcount+1
 				waypoints[pointcount] = {p, t}
@@ -683,11 +688,13 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 		end
 		for i = cstart, cend, cdir do
 			local t = (i - pos[bhp]) / vel[bhp]
+			if t > time then
+				return
+			end
 			local p = {
 				[bhp] = i,
 				y = math.floor(-0.5 * gravity * t * t + vel.y * t + pos.y +.5),
 				[shp] = math.floor(vel[shp] * t + pos[shp] +.5),
-				name = "default:wood"
 			}
 			pointcount = pointcount+1
 			waypoints[pointcount] = {p, t}
@@ -702,15 +709,17 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount)
 	and pos.y < yswitch then
 		y = pos.y
 	end
-	local y = math.floor(y +.5)
+	y = math.floor(y +.5)
 	while pointcount < max_pointcount do
 		local t = (vel.y +
 			math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
+		if t > time then
+			return
+		end
 		local p = {
 			x = math.floor(vel.x * t + pos.x +.5),
 			y = y,
 			z = math.floor(vel.z * t + pos.z +.5),
-			name = "default:mese"
 		}
 		pointcount = pointcount+1
 		waypoints[pointcount] = {p, t}
@@ -723,9 +732,9 @@ minetest.override_item("default:axe_wood", {
 		local dir = player:get_look_dir()
 		local pos = player:getpos()
 		local grav = 0.03
-		local ps = vector.throw_parabola(pos, dir, grav, 80, true)
+		local ps = vector.throw_parabola(pos, dir, grav, 80)
 		for i = 1,#ps do
-			minetest.set_node(ps[i], ps[i])
+			minetest.set_node(ps[i], {name="default:stone"})
 		end
 		--~ for t = 0,50,3 do
 			--~ local p = {
@@ -738,12 +747,95 @@ minetest.override_item("default:axe_wood", {
 	end,
 })--]]
 
-function funcs.throw_parabola(pos, vel, gravity, point_count, thicken)
+function funcs.throw_parabola(pos, vel, gravity, point_count, time)
 	local waypoints = {}
-	get_parabola_points(pos, vel, gravity, waypoints, point_count)
+	get_parabola_points(pos, vel, gravity, waypoints, point_count,
+			time or math.huge)
 	local ps = {}
-	for i = 1,#waypoints do
-		ps[i] = waypoints[i][1]
+	local ptscnt = #waypoints
+	local i = 1
+	while i < ptscnt do
+		local p,t = unpack(waypoints[i])
+		i = i+1
+		local p2,t2 = unpack(waypoints[i])
+		ps[#ps+1] = p
+		local dist = vector.distance(p, p2)
+		if dist < 1.1 then
+			if dist < 0.9 then
+				-- same position
+				i = i+1
+			end
+			-- touching
+		elseif dist < 1.7 then
+			-- common edge
+			-- get a list of possible positions between
+			local diff = vector.subtract(p2, p)
+			local possible_positions = {}
+			for i,v in pairs(diff) do
+				if v ~= 0 then
+					local p = vector.new(p)
+					p[i] = p[i] + v
+					possible_positions[#possible_positions+1] = p
+				end
+			end
+			-- test which one fits best
+			t = 0.5 * (t + t2)
+			local near_p = {
+				x = vel.x * t + pos.x,
+				y = -0.5 * gravity * t * t + vel.y * t + pos.y,
+				z = vel.z * t + pos.z,
+			}
+			local d = math.huge
+			for i = 1,2 do
+				local pos = possible_positions[i]
+				local dist = vector.distance(pos, near_p)
+				if dist < d then
+					p = pos
+					d = dist
+				end
+			end
+			-- add it
+			ps[#ps+1] = p
+		elseif dist < 1.8 then
+			-- common vertex
+			for k = 1,2 do
+				-- get a list of possible positions between
+				local diff = vector.subtract(p2, p)
+				local possible_positions = {}
+				for i,v in pairs(diff) do
+					if v ~= 0 then
+						local p = vector.new(p)
+						p[i] = p[i] + v
+						possible_positions[#possible_positions+1] = p
+					end
+				end
+				-- test which one fits best
+				t = k / 3 * (t + t2)
+				local near_p = {
+					x = vel.x * t + pos.x,
+					y = -0.5 * gravity * t * t + vel.y * t + pos.y,
+					z = vel.z * t + pos.z,
+				}
+				local d = math.huge
+				assert(#possible_positions == 4-k, "how, number positions?")
+				for i = 1,4-k do
+					local pos = possible_positions[i]
+					local dist = vector.distance(pos, near_p)
+					if dist < d then
+						p = pos
+						d = dist
+					end
+				end
+				-- add it
+				ps[#ps+1] = p
+			end
+		else
+			minetest.log("warning", "[vector_extras] A gap: " .. dist)
+			--~ error("A gap, it's a gap!: " .. dist)
+		end
+	end
+	if i == ptscnt then
+		ps[#ps+1] = waypoints[i]
 	end
 	return ps
 end
@@ -771,7 +863,7 @@ function funcs.point_distance_minmax(p1, p2)
 end
 
 function funcs.collision(p1, p2)
-	local clear, node_pos, collision_pos, max, min, dmax, dcmax, pt
+	local clear, node_pos, collision_pos, max, dmax, dcmax, pt
 	clear, node_pos = minetest.line_of_sight(p1, p2)
 	if clear then
 		return false
