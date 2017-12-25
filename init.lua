@@ -962,7 +962,7 @@ end
 vector_extras_functions = funcs
 
 local path = minetest.get_modpath"vector_extras"
-dofile(path .. "/vector_meta.lua")
+dofile(path .. "/legacy.lua")
 --dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
 
 vector_extras_functions = nil
