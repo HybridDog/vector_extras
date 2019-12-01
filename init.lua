@@ -1,4 +1,4 @@
-local load_time_start = minetest.get_us_time()
+local path = minetest.get_modpath"vector_extras"
 
 local funcs = {}
 
@@ -397,6 +397,21 @@ end
 
 function funcs.from_number(i)
 	return {x=i, y=i, z=i}
+end
+
+local adammil_fill = dofile(path .. "/adammil_flood_fill.lua")
+function funcs.search_2d(go_test, x0, y0, allow_revisit, give_map)
+	marked_places = adammil_fill(go_test, x0, y0, allow_revisit)
+	if give_map then
+		return marked_places
+	end
+	local l = {}
+	for vi in pairs(marked_places) do
+		local x = (vi % 65536) - 32768
+		local y = (math.floor(x / 65536) % 65536) - 32768
+		l[#l+1] = {x, y}
+	end
+	return l
 end
 
 local explosion_tables = {}
@@ -961,7 +976,6 @@ end
 
 vector_extras_functions = funcs
 
-local path = minetest.get_modpath"vector_extras"
 dofile(path .. "/legacy.lua")
 --dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
 
@@ -975,13 +989,4 @@ for name,func in pairs(funcs) do
 	else
 		vector[name] = func
 	end
-end
-
-
-local time = (minetest.get_us_time() - load_time_start) / 1000000
-local msg = "[vector_extras] loaded after ca. " .. time .. " seconds."
-if time > 0.01 then
-	print(msg)
-else
-	minetest.log("info", msg)
 end
