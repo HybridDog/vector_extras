@@ -414,6 +414,51 @@ function funcs.search_2d(go_test, x0, y0, allow_revisit, give_map)
 	return l
 end
 
+local fallings_search = dofile(path .. "/fill_3d.lua")
+local moves_touch = {
+	{x = -1, y = 0, z = 0},
+	{x = 0, y = 0, z = 0},
+	{x = 1, y = 0, z = 0},
+	{x = 0, y = -1, z = 0},
+	{x = 0, y = 1, z = 0},
+	{x = 0, y = 0, z = -1},
+	{x = 0, y = 0, z = 1},
+}
+local moves_near = {}
+for z = -1,1 do
+	for y = -1,1 do
+		for x = -1,1 do
+			moves_near[#moves_near+1] = {x = x, y = y, z = z}
+		end
+	end
+end
+
+function funcs.search_3d(can_go, startpos, apply_move, moves)
+	local visited = {}
+	local found = {}
+	local function on_visit(pos)
+		local vi = minetest.hash_node_position(pos)
+		if visited[vi] then
+			return false
+		end
+		visited[vi] = true
+		local valid_pos = can_go(pos)
+		if valid_pos then
+			found[#found+1] = pos
+		end
+		return valid_pos
+	end
+	if apply_move == "touch" then
+		apply_move = vector.add
+		moves = moves_touch
+	elseif apply_move == "near" then
+		apply_move = vector.add
+		moves = moves_near
+	end
+	fallings_search(on_visit, startpos, apply_move, moves)
+end
+
+
 local explosion_tables = {}
 function funcs.explosion_table(r)
 	local table = explosion_tables[r]
