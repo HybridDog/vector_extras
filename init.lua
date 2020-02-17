@@ -255,18 +255,6 @@ function funcs.sort_positions(ps, preferred_coords)
 	table.sort(ps, ps_sorting)
 end
 
-function funcs.scalar(v1, v2)
-	return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z
-end
-
-function funcs.cross(v1, v2)
-	return {
-		x = v1.y*v2.z - v1.z*v2.y,
-		y = v1.z*v2.x - v1.x*v2.z,
-		z = v1.x*v2.y - v1.y*v2.x
-	}
-end
-
 -- Tschebyschew norm
 function funcs.maxnorm(v)
 	return math.max(math.max(math.abs(v.x), math.abs(v.y)), math.abs(v.z))
