@@ -1023,63 +1023,18 @@ function funcs.triangle(pos1, pos2, pos3)
 		z = {"y", "x"},
 	}
 	local other_dirs = all_other_dirs[dir]
-	-- Sort the positions along the other directions
-	--[[
-	local sorteds = {}
-	for i = 1,2 do
-		local odir = other_dirs[i]
-		local ps = {}
-		if pos1[odir] < pos2[odir] then
-			if pos1[odir] < pos3[odir] then
-				ps[1] = pos1
-				if pos2[odir] < pos3[odir] then
-					ps[2] = pos2
-					ps[3] = pos3
-				else
-					ps[3] = pos2
-					ps[2] = pos3
-				end
-			else
-				ps[1] = pos3
-				ps[2] = pos1
-				ps[3] = pos2
-			end
-		elseif pos1[odir] < pos3[odir] then
-			ps[1] = pos2
-			ps[2] = pos1
-			ps[3] = pos3
-		else
-			ps[3] = pos1
-			if pos2[odir] < pos3[odir] then
-				ps[1] = pos2
-				ps[2] = pos3
-			else
-				ps[1] = pos3
-				ps[2] = pos2
-			end
-		end
-		sorteds[i] = ps
-	end
-		--~ p1[i] = sorteds[odir][1][odir]
-		--~ p2[i] = sorteds[odir][3][odir]
-	--]]
-	-- The boundaries of the 2D AABB along other_dirs
 	local odir1, odir2 = other_dirs[1], other_dirs[2]
+
 	local pos1_2d = {pos1[odir1], pos1[odir2]}
 	local pos2_2d = {pos2[odir1], pos2[odir2]}
 	local pos3_2d = {pos3[odir1], pos3[odir2]}
+	-- The boundaries of the 2D AABB along other_dirs
 	local p1 = {}
 	local p2 = {}
 	for i = 1,2 do
 		p1[i] = math.floor(math.min(pos1_2d[i], pos2_2d[i], pos3_2d[i]))
 		p2[i] = math.ceil(math.max(pos1_2d[i], pos2_2d[i], pos3_2d[i]))
 	end
-	-- The lines along the triangle boundaries
-	--~ local lines = {}
-	--~ local ps2 = sorteds[2]
-	--~ local s = {ps2[1][other_dirs[1]], ps2[1][other_dirs[2]]}
-	--~ local e = {ps2[2][other_dirs[1]], ps2[2][other_dirs[2]]}
-	--~ local line_left = {s[1], s[2], e[1] - s[1], e[2] - s[2]}
 
 	-- https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
 	local function edgefunc(p1, p2, pos)
@@ -1087,25 +1042,30 @@ function funcs.triangle(pos1, pos2, pos3)
 			- (pos[2] - p1[2]) * (p2[1] - p1[1])
 	end
 	local a_all_inv = 1.0 / edgefunc(pos1_2d, pos2_2d, pos3_2d)
+	local step_k3 = - (pos2_2d[1] - pos1_2d[1]) * a_all_inv
+	local step_k1 = - (pos3_2d[1] - pos2_2d[1]) * a_all_inv
 	-- Calculate the triangle points
 	local points = {}
 	local barycentric_coords = {}
 	local n = 0
+	-- It is possible to further optimize this
 	for v1 = p1[1], p2[1] do
-		for v2 = p1[2], p2[2] do
-			-- Not optimized
-			local p = {v1, v2}
-			local k3 = edgefunc(pos1_2d, pos2_2d, p) * a_all_inv
-			local k1 = edgefunc(pos2_2d, pos3_2d, p) * a_all_inv
+		local p = {v1, p1[2]}
+		local k3 = edgefunc(pos1_2d, pos2_2d, p) * a_all_inv
+		local k1 = edgefunc(pos2_2d, pos3_2d, p) * a_all_inv
+		for _ = p1[2], p2[2] do
 			local k2 = 1 - k1 - k3
 			if k1 >= 0 and k2 >= 0 and k3 >= 0 then
 				-- On triangle
 				local h = math.floor(k1 * pos1[dir] + k2 * pos2[dir] +
 					k3 * pos3[dir] + 0.5)
 				n = n+1
-				points[n] = {[odir1] = v1, [odir2] = v2, [dir] = h}
+				points[n] = {[odir1] = v1, [odir2] = p[2], [dir] = h}
 				barycentric_coords[n] = {k1, k2, k3}
 			end
+			p[2] = p[2]+1
+			k3 = k3 + step_k3
+			k1 = k1 + step_k1
 		end
 	end
 	return points, n, barycentric_coords
