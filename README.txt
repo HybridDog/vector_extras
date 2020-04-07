@@ -1,6 +1,5 @@
 TODO:
 * maybe make the explosion table function return a perlin explosion table
-* add documentation here instead of
-	https://dev.minetest.net/User:Hybrid_Dog#vector_extras
-* implement 3D scanline search
-* add vector.hollowsphere, less positions than WorldEdit hollowsphere
+* Figure out and implement 3D scanline search
+* Add vector.hollowsphere, less positions than WorldEdit hollowsphere
+* Add unit tests
