@@ -1041,6 +1041,10 @@ function funcs.triangle(pos1, pos2, pos3)
 		return (pos[1] - p1[1]) * (p2[2] - p1[2])
 			- (pos[2] - p1[2]) * (p2[1] - p1[1])
 	end
+	-- eps is used to prevend holes in neighbouring triangles
+	-- It should be smaller than the smallest possible barycentric value
+	-- FIXME: I'm not sure if it really does what it should.
+	local eps = 0.5 / math.max(p2[1] - p1[1], p2[2] - p1[2])
 	local a_all_inv = 1.0 / edgefunc(pos1_2d, pos2_2d, pos3_2d)
 	local step_k3 = - (pos2_2d[1] - pos1_2d[1]) * a_all_inv
 	local step_k1 = - (pos3_2d[1] - pos2_2d[1]) * a_all_inv
@@ -1055,7 +1059,7 @@ function funcs.triangle(pos1, pos2, pos3)
 		local k1 = edgefunc(pos2_2d, pos3_2d, p) * a_all_inv
 		for _ = p1[2], p2[2] do
 			local k2 = 1 - k1 - k3
-			if k1 >= 0 and k2 >= 0 and k3 >= 0 then
+			if k1 >= -eps and k2 >= -eps and k3 >= -eps then
 				-- On triangle
 				local h = math.floor(k1 * pos1[dir] + k2 * pos2[dir] +
 					k3 * pos3[dir] + 0.5)
