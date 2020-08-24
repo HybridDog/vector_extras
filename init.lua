@@ -273,7 +273,7 @@ end
 --local areas = {}
 function funcs.plane(ps)
 	-- sort positions and imagine the first one (A) as vector.zero
-	ps = vector.sort_positions(ps)
+	vector.sort_positions(ps)
 	local pos = ps[1]
 	local B = vector.subtract(ps[2], pos)
 	local C = vector.subtract(ps[3], pos)
