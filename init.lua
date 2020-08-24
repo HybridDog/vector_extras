@@ -122,7 +122,7 @@ function funcs.rayIter(pos, dir)
 		for i in pairs(step) do
 			choose[i] = vector.new(p)
 			choose[i][i] = choose[i][i] + step[i]
-			choosefit[i] = vector.scalar(vector.normalize(vector.subtract(choose[i], pos)), dir)
+			choosefit[i] = vector.dot(vector.normalize(vector.subtract(choose[i], pos)), dir)
 		end
 		p = choose[vector.get_max_coord(choosefit)]
 
@@ -292,28 +292,28 @@ function funcs.plane(ps)
 
 	local nAB = vector.normalize(B)
 	local nAC = vector.normalize(C)
-	local angle_BAC = math.acos(vector.scalar(nAB, nAC))
+	local angle_BAC = math.acos(vector.dot(nAB, nAC))
 
 	local nBA = vector.multiply(nAB, -1)
 	local nBC = vector.normalize(vector.subtract(C, B))
-	local angle_ABC = math.acos(vector.scalar(nBA, nBC))
+	local angle_ABC = math.acos(vector.dot(nBA, nBC))
 
 	for z = cube_p1.z, cube_p2.z do
 		for y = cube_p1.y, cube_p2.y do
 			for x = cube_p1.x, cube_p2.x do
 				local p = {x=x, y=y, z=z}
-				local n = -vector.scalar(p, vn)/vector.scalar(vn, vn)
+				local n = -vector.dot(p, vn)/vector.dot(vn, vn)
 				if math.abs(n) <= 0.5 then
 					local ep = vector.add(p, vector.multiply(vn, n))
 					local nep = vector.normalize(ep)
-					local angle_BAep = math.acos(vector.scalar(nAB, nep))
-					local angle_CAep = math.acos(vector.scalar(nAC, nep))
+					local angle_BAep = math.acos(vector.dot(nAB, nep))
+					local angle_CAep = math.acos(vector.dot(nAC, nep))
 					local angldif = angle_BAC - (angle_BAep+angle_CAep)
 					if math.abs(angldif) < 0.001 then
 						ep = vector.subtract(ep, B)
 						nep = vector.normalize(ep)
-						local angle_ABep = math.acos(vector.scalar(nBA, nep))
-						local angle_CBep = math.acos(vector.scalar(nBC, nep))
+						local angle_ABep = math.acos(vector.dot(nBA, nep))
+						local angle_CBep = math.acos(vector.dot(nBC, nep))
 						local angldif = angle_ABC - (angle_ABep+angle_CBep)
 						if math.abs(angldif) < 0.001 then
 							table.insert(ps, vector.add(pos, p))
