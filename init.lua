@@ -406,7 +406,7 @@ end
 local fallings_search = dofile(path .. "/fill_3d.lua")
 local moves_touch = {
 	{x = -1, y = 0, z = 0},
-	{x = 0, y = 0, z = 0},
+	{x = 0, y = 0, z = 0},  -- FIXME should this be here?
 	{x = 1, y = 0, z = 0},
 	{x = 0, y = -1, z = 0},
 	{x = 0, y = 1, z = 0},
