@@ -52,6 +52,7 @@ local function return_line(pos, dir, range) --range ~= length
 	local num = 1
 	local t_dir = get_used_dir(dir)
 	local dir_typ = t_dir[1]
+	local f_tab
 	if t_dir[3] == "+" then
 		f_tab = {0, range, 1}
 	else
@@ -314,7 +315,7 @@ function funcs.plane(ps)
 						nep = vector.normalize(ep)
 						local angle_ABep = math.acos(vector.dot(nBA, nep))
 						local angle_CBep = math.acos(vector.dot(nBC, nep))
-						local angldif = angle_ABC - (angle_ABep+angle_CBep)
+						angldif = angle_ABC - (angle_ABep+angle_CBep)
 						if math.abs(angldif) < 0.001 then
 							table.insert(ps, vector.add(pos, p))
 						end
@@ -358,9 +359,9 @@ function funcs.inside(pos, minp, maxp)
 	return true
 end
 
-function funcs.minmax(p1, p2)
-	local p1 = vector.new(p1)
-	local p2 = vector.new(p2)
+function funcs.minmax(pos1, pos2)
+	local p1 = vector.new(pos1)
+	local p2 = vector.new(pos2)
 	for _,i in ipairs({"x", "y", "z"}) do
 		if p1[i] > p2[i] then
 			p1[i], p2[i] = p2[i], p1[i]
@@ -390,7 +391,7 @@ end
 
 local adammil_fill = dofile(path .. "/adammil_flood_fill.lua")
 function funcs.search_2d(go_test, x0, y0, allow_revisit, give_map)
-	marked_places = adammil_fill(go_test, x0, y0, allow_revisit)
+	local marked_places = adammil_fill(go_test, x0, y0, allow_revisit)
 	if give_map then
 		return marked_places
 	end
@@ -498,7 +499,8 @@ function funcs.explosion_perlin(rmin, rmax, nparams)
 	nparams.spread = nparams.spread or vector.from_number(r*5)
 
 	local pos = {x=math.random(-30000, 30000), y=math.random(-30000, 30000), z=math.random(-30000, 30000)}
-	local map = minetest.get_perlin_map(nparams, vector.from_number(r+r+1)):get3dMap_flat(pos)
+	local map = minetest.get_perlin_map(nparams, vector.from_number(r+r+1)
+		):get3dMap_flat(pos)
 
 	local id = 1
 
@@ -513,11 +515,11 @@ function funcs.explosion_perlin(rmin, rmax, nparams)
 
 	local tab, n = {}, 1
 	for z=-r,r do
-		local bare_dist = z*z
+		local bare_dist_z = z*z
 		for y=-r,r do
-			local bare_dist = bare_dist+y*y
+			local bare_dist_yz = bare_dist_z + y*y
 			for x=-r,r do
-				local bare_dist = bare_dist+x*x
+				local bare_dist = bare_dist_yz + x*x
 				local add = bare_dist < bare_mindist
 				local pval, distdiv
 				if not add
@@ -543,22 +545,19 @@ function funcs.explosion_perlin(rmin, rmax, nparams)
 		end
 	end
 
-	map = nil
-	collectgarbage()
-
 	-- change strange values
 	local pval_diff = pval_max - pval_min
 	pval_min = pval_min/pval_diff
 
-	for n,i in pairs(tab) do
+	for k,i in pairs(tab) do
 		if i[2] then
 			local new_pval = math.abs(i[2]/pval_diff - pval_min)
 			if i[3]+0.33 < new_pval then
-				tab[n] = {i[1]}
+				tab[k] = {i[1]}
 			elseif i[3] < new_pval then
-				tab[n] = {i[1], true}
+				tab[k] = {i[1], true}
 			else
-				tab[n] = nil
+				tab[k] = nil
 			end
 		end
 	end
@@ -633,67 +632,6 @@ function funcs.ring(r)
 	return tab2
 end
 
-	--~ posy(t) = att + bt + c
-	--~ vely(t) = 2at + b
-	--~ accy(t) = 2a
-
-	--~ a = -0.5gravity
-	--~ vely(0) = b = vel.y
-	--~ posy(0) = c = pos.y
-
-	--~ posy(t) = -0.5 * gravity * t * t + vel.y * t + pos.y
-	--~ vely(t) = -gravity*t + vel.y
-
-	--~ Scheitel:
-	--~ vely(t) = 0 = -gravity*t + vel.y
-	--~ t = vel.y / gravity
-
-	--~ 45°
-	--~ vely(t)^2 = velx(t)^2 + velz(t)^2
-	--~ (-gravity*t + vel.y)^2 = vel.x * vel.x + vel.z * vel.z
-	--~ gravity^2 * t^2 + vel.y^2 - -2*gravity*t*vel.y = vel.x * vel.x + vel.z * vel.z
-	--~ gravity^2 * t^2 - 2*gravity*vel.y * t + (vel.y^2 - vel.x^2 - vel.z^2) = 0
-	--~ t = (2*gravity*vel.y .. rt((2*gravity*vel.y)^2 - 4*gravity^2*(vel.y^2 - vel.x^2 - vel.z^2))) / (2*gravity^2)
-	--~ t = (2*gravity*vel.y .. rt(4*gravity^2*vel.y^2 - 4*gravity^2*(vel.y^2) + 4*gravity^2*(vel.x^2 + vel.z^2))) / (2*gravity^2)
-	--~ t = (2*gravity*vel.y .. 2*gravity*rt(vel.x^2 + vel.z^2)) / (2*gravity^2)
-	--~ t = (vel.y .. rt(vel.x^2 + vel.z^2)) / gravity
-	--~ t1 = (vel.y - math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity
-	--~ t2 = (vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity
-
-	--~ yswitch = posy(t1) (= posy(t2)) //links und rechts gleich
-	--~ yswitch = -0.5 * gravity * ((vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity)^2 + vel.y * ((vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity) + pos.y
-	--~ yswitch = -0.5 * gravity * (vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z))^2 / gravity^2 + vel.y * ((vel.y + math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity) + pos.y
-	--~ yswitch = -0.5 * (vel.y^2 + 2*vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.x^2 + vel.z^2) / gravity + ((vel.y^2 + vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity) + pos.y
-	--~ yswitch = (-0.5 * (vel.y^2 + 2*vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.x^2 + vel.z^2) + ((vel.y^2 + vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z)))) / gravity + pos.y
-	--~ yswitch = (-0.5 * vel.y^2 - vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z) - 0.5 * vel.x^2 - 0.5 * vel.z^2 + vel.y^2 + vel.y*math.sqrt(vel.x * vel.x + vel.z * vel.z)) / gravity + pos.y
-	--~ yswitch = (-0.5 * vel.y^2 - 0.5 * vel.x^2 - 0.5 * vel.z^2 + vel.y^2) / gravity + pos.y
-	--~ yswitch = (0.5 * vel.y^2 - 0.5 * vel.x^2 - 0.5 * vel.z^2) / gravity + pos.y
-	--~ yswitch = -0.5 * (vel.x * vel.x + vel.z * vel.z - vel.y * vel.y) / gravity + pos.y
-
-
-	--~ 45° Zeitpunkte kleineres beim Aufstieg, größeres beim Fall
-	--~ (-gravity*t + vel.y)^2 = vel.x * vel.x + vel.z * vel.z
-	--~ -gravity*t + vel.y = ..math.sqrt(vel.x * vel.x + vel.z * vel.z)
-	--~ t = (..math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
-	--~ t_raise = (-math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
-	--~ t_fall = (math.sqrt(vel.x * vel.x + vel.z * vel.z) + vel.y) / gravity
-
-	--~ posy nach t umstellen
-	--~ y = -0.5 * gravity * t * t + vel.y * t + pos.y
-	--~ 0 = -0.5 * gravity * t * t + vel.y * t + pos.y - y
-	--~ t = (-vel.y .. math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / (-gravity)
-	--~ t = (vel.y .. math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
-	--~ t_up = (vel.y - math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
-	--~ t_down = (vel.y + math.sqrt(vel.y^2 + 2 * gravity * (pos.y - y))) / gravity
-
-	--~ posx(t) = vel.x * t + pos.x
-	--~ posz(t) = vel.z * t + pos.z
-
-	--~ posx nach t umstellen
-	--~ posx - pos.x = vel.x * t
-	--~ t = (posx - pos.x) / vel.x
-
-
 local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount,
 		time)
 	local pointcount = 0
@@ -703,9 +641,9 @@ local function get_parabola_points(pos, vel, gravity, waypoints, max_pointcount,
 		/ gravity + pos.y
 
 	-- the times of the 45° angle point
-	local i = math.sqrt(vel.x^2 + vel.z^2)
-	local t_raise_end = (-i + vel.y) / gravity
-	local t_fall_start = (i + vel.y) / gravity
+	local vel_len = math.sqrt(vel.x^2 + vel.z^2)
+	local t_raise_end = (-vel_len + vel.y) / gravity
+	local t_fall_start = (vel_len + vel.y) / gravity
 	if t_fall_start > 0 then
 		-- the right 45° angle point wasn't passed yet
 		if t_raise_end > 0 then
@@ -834,11 +772,11 @@ function funcs.throw_parabola(pos, vel, gravity, point_count, time)
 			-- get a list of possible positions between
 			local diff = vector.subtract(p2, p)
 			local possible_positions = {}
-			for i,v in pairs(diff) do
+			for c,v in pairs(diff) do
 				if v ~= 0 then
-					local p = vector.new(p)
-					p[i] = p[i] + v
-					possible_positions[#possible_positions+1] = p
+					local pos_moved = vector.new(p)
+					pos_moved[c] = pos_moved[c] + v
+					possible_positions[#possible_positions+1] = pos_moved
 				end
 			end
 			-- test which one fits best
@@ -849,12 +787,12 @@ function funcs.throw_parabola(pos, vel, gravity, point_count, time)
 				z = vel.z * t + pos.z,
 			}
 			local d = math.huge
-			for i = 1,2 do
-				local pos = possible_positions[i]
-				local dist = vector.distance(pos, near_p)
-				if dist < d then
-					p = pos
-					d = dist
+			for k = 1,2 do
+				local pos_moved = possible_positions[k]
+				local dist_current = vector.distance(pos_moved, near_p)
+				if dist_current < d then
+					p = pos_moved
+					d = dist_current
 				end
 			end
 			-- add it
@@ -865,11 +803,11 @@ function funcs.throw_parabola(pos, vel, gravity, point_count, time)
 				-- get a list of possible positions between
 				local diff = vector.subtract(p2, p)
 				local possible_positions = {}
-				for i,v in pairs(diff) do
+				for c,v in pairs(diff) do
 					if v ~= 0 then
-						local p = vector.new(p)
-						p[i] = p[i] + v
-						possible_positions[#possible_positions+1] = p
+						local pos_moved = vector.new(p)
+						pos_moved[c] = pos_moved[c] + v
+						possible_positions[#possible_positions+1] = pos_moved
 					end
 				end
 				-- test which one fits best
@@ -881,12 +819,12 @@ function funcs.throw_parabola(pos, vel, gravity, point_count, time)
 				}
 				local d = math.huge
 				assert(#possible_positions == 4-k, "how, number positions?")
-				for i = 1,4-k do
-					local pos = possible_positions[i]
-					local dist = vector.distance(pos, near_p)
-					if dist < d then
-						p = pos
-						d = dist
+				for j = 1,4-k do
+					local pos_moved = possible_positions[j]
+					local dist_current = vector.distance(pos_moved, near_p)
+					if dist_current < d then
+						p = pos_moved
+						d = dist_current
 					end
 				end
 				-- add it
@@ -907,9 +845,9 @@ function funcs.chunkcorner(pos)
 	return {x=pos.x-pos.x%16, y=pos.y-pos.y%16, z=pos.z-pos.z%16}
 end
 
-function funcs.point_distance_minmax(p1, p2)
-	local p1 = vector.new(p1)
-	local p2 = vector.new(p2)
+function funcs.point_distance_minmax(pos1, pos2)
+	local p1 = vector.new(pos1)
+	local p2 = vector.new(pos2)
 	local min, max, vmin, vmax, num
 	for _,i in ipairs({"x", "y", "z"}) do
 		num = math.abs(p1[i] - p2[i])
@@ -926,21 +864,20 @@ function funcs.point_distance_minmax(p1, p2)
 end
 
 function funcs.collision(p1, p2)
-	local clear, node_pos, collision_pos, max, dmax, dcmax, pt
-	clear, node_pos = minetest.line_of_sight(p1, p2)
+	local clear, node_pos = minetest.line_of_sight(p1, p2)
 	if clear then
 		return false
 	end
-	collision_pos = {}
-	min, max = funcs.point_distance_minmax(node_pos, p2)
+	local collision_pos = {}
+	local _, max = funcs.point_distance_minmax(node_pos, p2)
 	if node_pos[max] > p2[max] then
 		collision_pos[max] = node_pos[max] - 0.5
 	else
 		collision_pos[max] = node_pos[max] + 0.5
 	end
-	dmax = p2[max] - node_pos[max]
-	dcmax = p2[max] - collision_pos[max]
-	pt = dcmax/dmax
+	local dmax = p2[max] - node_pos[max]
+	local dcmax = p2[max] - collision_pos[max]
+	local pt = dcmax / dmax
 
 	for _,i in ipairs({"x", "y", "z"}) do
 		collision_pos[i] = p2[i] - (p2[i] - node_pos[i]) * pt
@@ -1037,9 +974,9 @@ function funcs.triangle(pos1, pos2, pos3)
 	end
 
 	-- https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage
-	local function edgefunc(p1, p2, pos)
-		return (pos[1] - p1[1]) * (p2[2] - p1[2])
-			- (pos[2] - p1[2]) * (p2[1] - p1[1])
+	local function edgefunc(vert1, vert2, pos)
+		return (pos[1] - vert1[1]) * (vert2[2] - vert1[2])
+			- (pos[2] - vert1[2]) * (vert2[1] - vert1[1])
 	end
 	-- eps is used to prevend holes in neighbouring triangles
 	-- It should be smaller than the smallest possible barycentric value
