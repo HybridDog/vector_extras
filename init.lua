@@ -334,7 +334,16 @@ function funcs.straightdelay(s, v, a)
 	return (math.sqrt(v*v+2*a*s)-v)/a
 end
 
-vector.zero = vector.new()
+-- override vector.zero
+-- builtin used not to have the vector.zero function. to keep compatibility,
+-- vector.zero has to be a 0-vector and vector.zero() has to return a 0-vector
+-- => we make a callable 0-vector table
+if not vector.zero then
+	vector.zero = {x = 0, y = 0, z = 0}
+else
+	local old_zero = vector.zero
+	vector.zero = setmetatable({x = 0, y = 0, z = 0}, {__call = old_zero})
+end
 
 function funcs.sun_dir(time)
 	if not time then
