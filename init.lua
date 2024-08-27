@@ -2,10 +2,6 @@ local path = minetest.get_modpath"vector_extras"
 
 local funcs = {}
 
-function funcs.pos_to_string(pos)
-	return "("..pos.x.."|"..pos.y.."|"..pos.z..")"
-end
-
 local r_corr = 0.25 --remove a bit more nodes (if shooting diagonal) to let it
 -- look like a hole (sth like antialiasing)
 
@@ -270,79 +266,11 @@ function funcs.pnorm(v, p)
 	return (math.abs(v.x)^p + math.abs(v.y)^p + math.abs(v.z)^p)^(1 / p)
 end
 
---not optimized
---local areas = {}
-function funcs.plane(ps)
-	-- sort positions and imagine the first one (A) as vector.zero
-	vector.sort_positions(ps)
-	local pos = ps[1]
-	local B = vector.subtract(ps[2], pos)
-	local C = vector.subtract(ps[3], pos)
-
-	-- get the positions for the fors
-	local cube_p1 = {x=0, y=0, z=0}
-	local cube_p2 = {x=0, y=0, z=0}
-	for i in pairs(cube_p1) do
-		cube_p1[i] = math.min(B[i], C[i], 0)
-		cube_p2[i] = math.max(B[i], C[i], 0)
-	end
-	cube_p1 = vector.apply(cube_p1, math.floor)
-	cube_p2 = vector.apply(cube_p2, math.ceil)
-
-	local vn = vector.normalize(vector.cross(B, C))
-
-	local nAB = vector.normalize(B)
-	local nAC = vector.normalize(C)
-	local angle_BAC = math.acos(vector.dot(nAB, nAC))
-
-	local nBA = vector.multiply(nAB, -1)
-	local nBC = vector.normalize(vector.subtract(C, B))
-	local angle_ABC = math.acos(vector.dot(nBA, nBC))
-
-	for z = cube_p1.z, cube_p2.z do
-		for y = cube_p1.y, cube_p2.y do
-			for x = cube_p1.x, cube_p2.x do
-				local p = {x=x, y=y, z=z}
-				local n = -vector.dot(p, vn)/vector.dot(vn, vn)
-				if math.abs(n) <= 0.5 then
-					local ep = vector.add(p, vector.multiply(vn, n))
-					local nep = vector.normalize(ep)
-					local angle_BAep = math.acos(vector.dot(nAB, nep))
-					local angle_CAep = math.acos(vector.dot(nAC, nep))
-					local angldif = angle_BAC - (angle_BAep+angle_CAep)
-					if math.abs(angldif) < 0.001 then
-						ep = vector.subtract(ep, B)
-						nep = vector.normalize(ep)
-						local angle_ABep = math.acos(vector.dot(nBA, nep))
-						local angle_CBep = math.acos(vector.dot(nBC, nep))
-						angldif = angle_ABC - (angle_ABep+angle_CBep)
-						if math.abs(angldif) < 0.001 then
-							table.insert(ps, vector.add(pos, p))
-						end
-					end
-				end
-			end
-		end
-	end
-	return ps
-end
-
 function funcs.straightdelay(s, v, a)
 	if not a then
 		return s/v
 	end
 	return (math.sqrt(v*v+2*a*s)-v)/a
-end
-
--- override vector.zero
--- builtin used not to have the vector.zero function. to keep compatibility,
--- vector.zero has to be a 0-vector and vector.zero() has to return a 0-vector
--- => we make a callable 0-vector table
-if not vector.zero then
-	vector.zero = {x = 0, y = 0, z = 0}
-else
-	local old_zero = vector.zero
-	vector.zero = setmetatable({x = 0, y = 0, z = 0}, {__call = old_zero})
 end
 
 function funcs.sun_dir(time)
@@ -901,18 +829,6 @@ function funcs.update_minp_maxp(minp, maxp, pos)
 	end
 end
 
-function funcs.quickadd(pos, z,y,x)
-	if z then
-		pos.z = pos.z+z
-	end
-	if y then
-		pos.y = pos.y+y
-	end
-	if x then
-		pos.x = pos.x+x
-	end
-end
-
 function funcs.unpack(pos)
 	return pos.z, pos.y, pos.x
 end
@@ -1021,20 +937,12 @@ function funcs.triangle(pos1, pos2, pos3)
 	return points, n, barycentric_coords
 end
 
-
-vector_extras_functions = funcs
-
-dofile(path .. "/legacy.lua")
---dofile(minetest.get_modpath("vector_extras").."/vector_meta.lua")
-
-vector_extras_functions = nil
-
-
 for name,func in pairs(funcs) do
 	if vector[name] then
 		minetest.log("error", "[vector_extras] vector."..name..
 			" already exists.")
 	else
+		-- luacheck: globals vector
 		vector[name] = func
 	end
 end

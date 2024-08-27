@@ -134,21 +134,3 @@ See e.g. `minetest.line_of_sight`.
     * If `time` is omitted, it uses the current time.
     * This function does not yet support the moon;
       at night it simply returns `nil`.
-
-
-## Helpers which I don't recommend to use now
-
-* `vector.pos_to_string(pos)`: returns a string
-    * It is similar to `minetest.pos_to_string`; it uses a different format:
-      `"("..pos.x.."|"..pos.y.."|"..pos.z..")"`
-* `vector.zero`
-    * The zero vector `{x=0, y=0, z=0}`
-* `vector.quickadd(pos, [z],[y],[x])`
-    * Adds values to the vector components in-place
-
-
-## Deprecated helpers
-
-* `vector.plane`
-    * should be removed soon; it should have done the same as vector.triangle
-
